@@ -1,7 +1,6 @@
 import os
 import sys
 import pytest
-import sqlite3
 import flask
 import json
 from uuid import uuid4
@@ -13,38 +12,21 @@ from flask_back_1 import create_app, db
 
 
 # pytest -s -o log_cli=true -o log_level=INFO
-# t_config = 'test'
-
-
-def flask_app():
-    app = create_app()
-    app.config["TESTING"] = True
-    app.config["WTF_CSRF_ENABLED"] = False
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "TEST_FLASK_BACK_1_DATABASE_URI"
-    )
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = os.environ.get(
-        "SQLALCHEMY_TRACK_MODIFICATIONS"
-    )
-    # db.init_app(app)
-    # @app.teardown_appcontext
-    # def delete_tables(exception=None):
-    #     db.drop_all()
-    return app
 
 
 @pytest.fixture()
 def client():
-    app = flask_app()
+    app = create_app("testing")
     with app.test_client() as client:
         db.init_app(app)
 
         with app.app_context():
             db.create_all()
+
         yield client
 
         @app.teardown_appcontext
-        def shutdown_session(exception=None):
+        def shutdown_session_and_delete_table(exception=None):
             db.session.remove()
             db.drop_all()
 

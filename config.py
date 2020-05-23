@@ -12,24 +12,21 @@ class Config(object):
 class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = False
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = os.environ.get(
-        "SQLALCHEMY_TRACK_MODIFICATIONS"
-    )
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("FLASK_BACK_1_DATABASE_URI")
+    ENV = "development"
+    SQLALCHEMY_TRACK_MODIFICATIONS = os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS")
+    SQLALCHEMY_DATABASE_URI = os.environ.get("FLASK_BACK_1_DATABASE_URI")
 
 
 class TestingConfig(Config):
     DEBUG = False
     TESTING = True
+    ENV = "testing"
     WTF_CSRF_ENABLED = False
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "TEST_FLASK_BACK_1_DATABASE_URI"
-    )
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = os.environ.get(
-        "SQLALCHEMY_TRACK_MODIFICATIONS"
-    )
+    SQLALCHEMY_DATABASE_URI = os.environ.get("TEST_FLASK_BACK_1_DATABASE_URI")
+    SQLALCHEMY_TRACK_MODIFICATIONS = os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS")
+
 
 config = {
-    'development': DevelopmentConfig,
-    'testing': TestingConfig,
+    "development": DevelopmentConfig,
+    "testing": TestingConfig,
 }

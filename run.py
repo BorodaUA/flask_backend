@@ -1,6 +1,6 @@
 from flask_back_1 import create_app
 
-app = create_app()
+app = create_app("development")
 
 
 if __name__ == "__main__":
