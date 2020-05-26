@@ -9,6 +9,8 @@ topdir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(topdir)
 
 from flask_back_1 import create_app, db
+from api.models import user
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 # pytest -s -o log_cli=true -o log_level=INFO
@@ -21,25 +23,33 @@ def client():
         db.init_app(app)
 
         with app.app_context():
-            db.create_all()
+            user.Base.session = scoped_session(
+                sessionmaker(
+                    autocommit=False,
+                    autoflush=False,
+                    bind=db.get_engine(bind="flask_back_1"),
+                )
+            )
+            user.Base.query = user.Base.session.query_property()
+            user.Base.metadata.create_all(db.get_engine(bind="flask_back_1"))
 
         yield client
 
         @app.teardown_appcontext
         def shutdown_session_and_delete_table(exception=None):
-            db.session.remove()
-            db.drop_all()
+            user.Base.session.remove()
+            user.Base.metadata.drop_all(db.get_engine(bind="flask_back_1"))
 
 
-def test_home_page(client):
-    response = client.get("/")
-    assert b"HOME" in response.data
+def test_api_home_page(client):
+    response = client.get("/api/")
+    response = json.loads(response.data)
+    assert "Api Home page" == response["message"]
 
 
 def test_get_users(client):
     response = client.get("/api/users")
     response = json.loads(response.data)
-    print(response)
     assert "message" in response
 
 
@@ -79,7 +89,6 @@ def test_add_user_username_valid_password_valid(client):
 
 
 def test_add_user_username_valid_password_valid(client):
-    # unique_username = str(uuid4())
     request = client.post(
         "/api/users/register",
         data=json.dumps(
@@ -96,7 +105,6 @@ def test_add_user_username_valid_password_valid(client):
 
 
 def test_add_duplicate_username_valid_password_valid(client):
-    # unique_username = str(uuid4())
     request = client.post(
         "/api/users/register",
         data=json.dumps(

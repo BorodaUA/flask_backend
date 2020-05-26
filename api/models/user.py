@@ -21,19 +21,26 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, MetaData
 
 
 # db_session = database_connect(os.environ.get("FLASK_BACK_1_DATABASE_URI"))[1]
-metadata = MetaData()
+# metadata = MetaData()
 # db_address = os.environ.get("FLASK_BACK_1_DATABASE_URI")
 # engine = create_engine(db_address)
 # db_session = scoped_session(
 #     sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # )
-
-Base = declarative_base(metadata=metadata)
+# from db.db import db
+Base = declarative_base()
+# Base.session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=db.engine))
+# Base.query = Base.session.query_property()
+# Base.metadata.bind = db.engine
 # Base.query = db_session.query_property()
 # Base.query = register_app_handlers.db_session.query_property()
+# from api.models.flask_sqlalchemy_bridge import db
+# from db.db import Base
 
 
 class UserModel(Base):
+    # class UserModel(db.Model):
+    # query = db.session.query_property()
     __bind_key__ = "flask_back_1"
     #
     __tablename__ = "users"

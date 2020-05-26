@@ -11,7 +11,9 @@ from uuid import uuid4
 
 
 # from api.models.user import db_session
-from api.models.flask_sqlalchemy import db
+# from api.models.flask_sqlalchemy_bridge import user_db
+# from flask_back_1 import user_db
+from db.db import db
 
 db_session = db.session
 

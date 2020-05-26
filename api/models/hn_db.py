@@ -1,6 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (
-    create_engine,
+    # create_engine,
     Column,
     Integer,
     String,
@@ -8,31 +8,45 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     ForeignKey,
-)
-from sqlalchemy.orm import scoped_session, sessionmaker
-import os
-from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
-
-load_dotenv()
-
-db_address = os.environ.get("HACKER_NEWS_DATABASE_URI")
-
-
-engine = create_engine(db_address)
-db_session = scoped_session(
-    sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    MetaData,
 )
 
+# from sqlalchemy.orm import scoped_session, sessionmaker
+# import os
+# from dotenv import load_dotenv
+# from flask_sqlalchemy import SQLAlchemy
+
+# load_dotenv()
+
+# db_address = os.environ.get("HACKER_NEWS_DATABASE_URI")
+
+
+# engine = create_engine(db_address)
+# db_session = scoped_session(
+#     sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# )
+# from db.db import db
 Base = declarative_base()
-Base.query = db_session.query_property()
+# Base.session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=db.get_engine('hacker_news')))
+# Base.query = Base.session.query_property()
+# Base.metadata.bind = db.get_engine('hacker_news')
+# Base.query = db_session.query_property()
+
+# metadata = MetaData()
+# Base = declarative_base(metadata=metadata)
+
+# from api.models.flask_sqlalchemy_bridge import db
+# from db.db import Base
+# from db.db import db
 
 
 class HackerNews_TopStories(Base):
-
+    # class HackerNews_TopStories(db.Model):
+    # query = db.session(engine_options='hacker_news').query_property()
+    __bind_key__ = "hacker_news"
+    #
     __tablename__ = "hacker_news_top_stories"
     #
-    __bind_key__ = "hacker_news"
     #
     id = Column(Integer, primary_key=True)
     #
@@ -126,5 +140,5 @@ class HackerNews_NewStories_Comments(Base):
     comment_type = Column(String)
 
 
-def init_db():
-    Base.metadata.create_all(bind=engine)
+# def init_db():
+#     Base.metadata.create_all(bind=engine)
