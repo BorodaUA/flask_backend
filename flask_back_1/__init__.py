@@ -1,6 +1,7 @@
 from flask import Flask
 import os
 from sqlalchemy.orm import scoped_session, sessionmaker
+from flask_sqlalchemy import BaseQuery
 
 # from api.models import user, hn_db
 # from api.models.flask_sqlalchemy_bridge import user_db, hacker_news_db
@@ -33,17 +34,17 @@ def create_app(config_name):
         # user_db.init_app(app)
         # hacker_news_db.init_app(app)
         db.init_app(app)
-    # flask_sqlalchemy.db.init_app(app)
-    # user.init_db()
-    # hn_db.init_db()
-    ###
-    # @app.teardown_appcontext
-    # def shutdown_session(exception=None):
-    #     # user.db_session.remove()
-    #     hn_db.db_session.remove()
-    # db.drop_all()
-    # db.get_engine(bind='flask_back_1')
-    ###
+        # flask_sqlalchemy.db.init_app(app)
+        # user.init_db()
+        # hn_db.init_db()
+        ###
+        # @app.teardown_appcontext
+        # def shutdown_session(exception=None):
+        #     # user.db_session.remove()
+        #     hn_db.db_session.remove()
+        # db.drop_all()
+        # db.get_engine(bind='flask_back_1')
+        ###
 
         @app.before_first_request
         def create_tables():

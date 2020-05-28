@@ -1,6 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (
-    # create_engine,
     Column,
     Integer,
     String,
@@ -10,51 +9,25 @@ from sqlalchemy import (
     ForeignKey,
     MetaData,
 )
+from sqlalchemy.orm import relationship
 
-# from sqlalchemy.orm import scoped_session, sessionmaker
-# import os
-# from dotenv import load_dotenv
-# from flask_sqlalchemy import SQLAlchemy
-
-# load_dotenv()
-
-# db_address = os.environ.get("HACKER_NEWS_DATABASE_URI")
-
-
-# engine = create_engine(db_address)
-# db_session = scoped_session(
-#     sessionmaker(autocommit=False, autoflush=False, bind=engine)
-# )
-# from db.db import db
 Base = declarative_base()
-# Base.session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=db.get_engine('hacker_news')))
-# Base.query = Base.session.query_property()
-# Base.metadata.bind = db.get_engine('hacker_news')
-# Base.query = db_session.query_property()
-
-# metadata = MetaData()
-# Base = declarative_base(metadata=metadata)
-
-# from api.models.flask_sqlalchemy_bridge import db
-# from db.db import Base
-# from db.db import db
 
 
 class HackerNews_TopStories(Base):
-    # class HackerNews_TopStories(db.Model):
-    # query = db.session(engine_options='hacker_news').query_property()
+
     __bind_key__ = "hacker_news"
     #
     __tablename__ = "hacker_news_top_stories"
     #
     #
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, autoincrement=True)
     #
     parse_dt = Column(DateTime)
     #
     hn_url = Column(String)
     #
-    item_id = Column(Integer)
+    item_id = Column(Integer, primary_key=True)
     deleted = Column(Boolean)
     item_type = Column(String)
     by = Column(String)
@@ -69,6 +42,11 @@ class HackerNews_TopStories(Base):
     title = Column(String)
     parts = Column(JSON)
     descendants = Column(Integer)
+
+    ###
+    child_comments = relationship(
+        "HackerNews_TopStories_Comments", back_populates="parent_story", order_by="desc(HackerNews_TopStories_Comments.parse_dt)"
+    )
 
 
 class HackerNews_TopStories_Comments(Base):
@@ -85,10 +63,14 @@ class HackerNews_TopStories_Comments(Base):
     deleted = Column(Boolean)
     comment_id = Column(Integer)
     kids = Column(JSON)
-    parent = Column(Integer)
+    parent = Column(Integer, ForeignKey("hacker_news_top_stories.item_id"))
     text = Column(String)
     time = Column(Integer)
     comment_type = Column(String)
+    ###
+    parent_story = relationship(
+        "HackerNews_TopStories", back_populates="child_comments",
+    )
 
 
 class HackerNews_NewStories(Base):
