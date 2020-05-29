@@ -44,8 +44,10 @@ class HackerNews_TopStories(Base):
     descendants = Column(Integer)
 
     ###
-    child_comments = relationship(
-        "HackerNews_TopStories_Comments", back_populates="parent_story", order_by="desc(HackerNews_TopStories_Comments.parse_dt)"
+    comments = relationship(
+        "HackerNews_TopStories_Comments",
+        backref="hacker_news_top_stories",
+        order_by="desc(HackerNews_TopStories_Comments.parse_dt)",
     )
 
 
@@ -67,10 +69,6 @@ class HackerNews_TopStories_Comments(Base):
     text = Column(String)
     time = Column(Integer)
     comment_type = Column(String)
-    ###
-    parent_story = relationship(
-        "HackerNews_TopStories", back_populates="child_comments",
-    )
 
 
 class HackerNews_NewStories(Base):
@@ -79,13 +77,13 @@ class HackerNews_NewStories(Base):
     #
     __bind_key__ = "hacker_news"
     #
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer)
     #
     parse_dt = Column(DateTime)
     #
     hn_url = Column(String)
     #
-    item_id = Column(Integer)
+    item_id = Column(Integer, primary_key=True)
     deleted = Column(Boolean)
     item_type = Column(String)
     by = Column(String)
@@ -100,6 +98,11 @@ class HackerNews_NewStories(Base):
     title = Column(String)
     parts = Column(JSON)
     descendants = Column(Integer)
+    comments = relationship(
+        "HackerNews_NewStories_Comments",
+        backref="hacker_news_new_stories",
+        order_by="desc(HackerNews_NewStories_Comments.parse_dt)",
+    )
 
 
 class HackerNews_NewStories_Comments(Base):
@@ -116,11 +119,7 @@ class HackerNews_NewStories_Comments(Base):
     deleted = Column(Boolean)
     comment_id = Column(Integer)
     kids = Column(JSON)
-    parent = Column(Integer)
+    parent = Column(Integer, ForeignKey("hacker_news_new_stories.item_id"))
     text = Column(String)
     time = Column(Integer)
     comment_type = Column(String)
-
-
-# def init_db():
-#     Base.metadata.create_all(bind=engine)
