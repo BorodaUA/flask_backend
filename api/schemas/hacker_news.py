@@ -2,11 +2,11 @@ from marshmallow import Schema, fields, validate
 
 
 class NewsPagination_Schema(Schema):
-    page_number = fields.Int()
+    page_number = fields.Int(required=True)
 
 
 class Story_id_Schema(Schema):
-    story_id = fields.Int()
+    story_id = fields.Int(required=True)
 
 
 class Comments_Schema(Schema):

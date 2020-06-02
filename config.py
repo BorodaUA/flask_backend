@@ -32,7 +32,7 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get("TEST_FLASK_BACK_1_DATABASE_URI")
     SQLALCHEMY_BINDS = {
         "flask_back_1": os.environ.get("TEST_FLASK_BACK_1_DATABASE_URI"),
-        "hacker_news": os.environ.get("HACKER_NEWS_DATABASE_URI"),
+        "hacker_news": os.environ.get("TEST_HACKER_NEWS_DATABASE_URI"),
     }
 
 
