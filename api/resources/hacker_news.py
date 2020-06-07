@@ -101,7 +101,8 @@ class HackerNews_TopStories_Resourse(Resource):
             incoming_pagination = news_pagination.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-
+        if incoming_pagination['page_number'] <= 0:
+            return {"message": "pagination must be >= 1"}, 400
         if not HackerNews_TopStories.query.all():
             return {"message": "No top_stories in this table"}, 400
         page = paginate(
@@ -194,6 +195,8 @@ class HackerNews_NewStories_Resourse(Resource):
 
         if not HackerNews_NewStories.query.all():
             return {"message": "No new_stories in this table"}, 400
+        if incoming_pagination['page_number'] <= 0:
+            return {"message": "pagination must be >= 1"}, 400
         page = paginate(
             HackerNews_NewStories.query.order_by(desc(HackerNews_NewStories.parse_dt))
             .limit(500)
