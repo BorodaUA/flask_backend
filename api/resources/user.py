@@ -87,6 +87,7 @@ class UserLogin(Resource):
                         {
                             "message": f"Login succesfull {db_user.username}",
                             "user_uuid": db_user.user_uuid,
+                            "username": db_user.username,
                         }
                     ),
                     200,
@@ -101,6 +102,7 @@ class UserLogin(Resource):
                         {
                             "message": f"Login succesfull {db_email_address.email_address}",
                             "user_uuid": db_email_address.user_uuid,
+                            "username": db_user.username,
                         }
                     ),
                     200,

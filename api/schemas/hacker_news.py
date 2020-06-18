@@ -22,6 +22,20 @@ class Comments_Schema(Schema):
     comment_type = fields.Str()
 
 
+class Add_Comment_Schema(Schema):
+    parse_dt = fields.Str()
+    by = fields.Str()
+    deleted = fields.Bool()
+    existed_comment_id = fields.Int()
+    comment_id = fields.Int()
+    kids = fields.List(fields.Int())
+    parent = fields.Int()
+    existed_comment_text = fields.Str()
+    text = fields.Str()
+    time = fields.Int()
+    comment_type = fields.Str()
+
+
 class HackerNews_TopStories_Schema(Schema):
     id = fields.Str()
     parse_dt = fields.DateTime()

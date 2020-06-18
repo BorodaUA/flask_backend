@@ -12,10 +12,13 @@ from api.schemas.hacker_news import (
     NewsPagination_Schema,
     Story_id_Schema,
     Comments_Schema,
+    Add_Comment_Schema,
 )
 from sqlalchemy import desc
 from sqlalchemy_pagination import paginate
 from marshmallow import ValidationError
+
+from api.models import hn_db
 
 
 top_stories_schema = HackerNews_TopStories_Schema(
@@ -88,6 +91,7 @@ new_story_schema = HackerNews_NewStories_Schema(
 news_pagination = NewsPagination_Schema()
 story_id_schema = Story_id_Schema()
 comments_schema = Comments_Schema(many=True)
+add_coment_schema = Add_Comment_Schema()
 
 
 class HackerNews_TopStories_Resourse(Resource):
@@ -101,7 +105,7 @@ class HackerNews_TopStories_Resourse(Resource):
             incoming_pagination = news_pagination.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if incoming_pagination['page_number'] <= 0:
+        if incoming_pagination["page_number"] <= 0:
             return {"message": "pagination must be >= 1"}, 400
         if not HackerNews_TopStories.query.all():
             return {"message": "No top_stories in this table"}, 400
@@ -155,9 +159,9 @@ class HackerNews_TopStories_Story_Resource(Resource):
 
 class HackerNews_TopStories_Story_Comments_Resource(Resource):
     @classmethod
-    def post(cls, story_id):
+    def get(cls, story_id):
         """
-        Getting POST requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
+        Getting GET requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
         endpoint, and returning a list of hacker_news top_stories`s story`s comments
         """
         try:
@@ -177,6 +181,48 @@ class HackerNews_TopStories_Story_Comments_Resource(Resource):
         )
         return jsonify(comments_schema.dump(comments))
 
+    def post(cls, story_id):
+        """
+        Getting POST requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
+        endpoint, and adding hacker_news top_stories`s story`s comment
+        """
+        try:
+            incoming_comment = add_coment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        if HackerNews_TopStories_Comments.query.filter(
+            HackerNews_TopStories_Comments.comment_id
+            == incoming_comment["existed_comment_id"]
+        ).first():
+            print("id the same")
+            HackerNews_TopStories_Comments.query.filter(
+                HackerNews_TopStories_Comments.comment_id
+                == incoming_comment["existed_comment_id"]
+            ).update(
+                {
+                    "parse_dt": incoming_comment["parse_dt"],
+                    "by": incoming_comment["by"],
+                    "deleted": incoming_comment["deleted"],
+                    "comment_id": int(incoming_comment["existed_comment_id"]),
+                    "kids": incoming_comment["kids"],
+                    "parent": incoming_comment["parent"],
+                    "text": incoming_comment["text"],
+                    "time": incoming_comment["time"],
+                    "comment_type": incoming_comment["comment_type"],
+                }
+            )
+            hn_db.Base.session.commit()
+            return make_response(jsonify({"message": "Comment updated",}), 201,)
+        else:
+            incoming_comment.pop("existed_comment_id")
+            incoming_comment.pop("existed_comment_text")
+            comment_data = HackerNews_TopStories_Comments(**incoming_comment)
+            # db.session.add(comment_data)
+            hn_db.Base.session.add(comment_data)
+            hn_db.Base.session.commit()
+            # db.session.commit()
+            return make_response(jsonify({"message": "Comment added",}), 201,)
+
 
 ###
 
@@ -195,7 +241,7 @@ class HackerNews_NewStories_Resourse(Resource):
 
         if not HackerNews_NewStories.query.all():
             return {"message": "No new_stories in this table"}, 400
-        if incoming_pagination['page_number'] <= 0:
+        if incoming_pagination["page_number"] <= 0:
             return {"message": "pagination must be >= 1"}, 400
         page = paginate(
             HackerNews_NewStories.query.order_by(desc(HackerNews_NewStories.parse_dt))
