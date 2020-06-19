@@ -7,7 +7,7 @@ load_dotenv()
 class Config(object):
 
     SECRET_KEY = os.environ.get("SECRET_KEY") or "hard to guess string"
-
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -15,8 +15,6 @@ class DevelopmentConfig(Config):
     ENV = "development"
     SQLALCHEMY_TRACK_MODIFICATIONS = os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS")
     SQLALCHEMY_DATABASE_URI = os.environ.get("FLASK_BACK_1_DATABASE_URI")
-    # SQLALCHEMY_DATABASE_URI = 'sqlite:///db1.db'
-    # SQLALCHEMY_DATABASE_URI = os.environ.get("HACKER_NEWS_DATABASE_URI")
     SQLALCHEMY_BINDS = {
         "flask_back_1": os.environ.get("FLASK_BACK_1_DATABASE_URI"),
         "hacker_news": os.environ.get("HACKER_NEWS_DATABASE_URI"),
