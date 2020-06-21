@@ -23,7 +23,7 @@ class Comments_Schema(Schema):
 
 
 class Add_Comment_Schema(Schema):
-    parse_dt = fields.Str()
+    parse_dt = fields.DateTime()
     by = fields.Str()
     deleted = fields.Bool()
     existed_comment_id = fields.Int()

@@ -198,7 +198,7 @@ def test_signin_invalid_username_valid_email_valid_password(client):
             {
                 "username": "bob_2",
                 "password": "123",
-                "email_address": f"bob_2@gmail.com",
+                "email_address": "bob_2@gmail.com",
             }
         ),
         content_type="application/json",
@@ -210,7 +210,7 @@ def test_signin_invalid_username_valid_email_valid_password(client):
         "/api/users/signin",
         data=json.dumps(
             {
-                "username": "not_bob",
+                "username": "not_bob_2",
                 "password": "123",
                 "email_address": "bob_2@gmail.com",
             }

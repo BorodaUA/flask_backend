@@ -9,11 +9,11 @@ class Config(object):
     SECRET_KEY = os.environ.get("SECRET_KEY") or "hard to guess string"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+
 class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = False
     ENV = "development"
-    SQLALCHEMY_TRACK_MODIFICATIONS = os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS")
     SQLALCHEMY_DATABASE_URI = os.environ.get("FLASK_BACK_1_DATABASE_URI")
     SQLALCHEMY_BINDS = {
         "flask_back_1": os.environ.get("FLASK_BACK_1_DATABASE_URI"),
@@ -26,7 +26,6 @@ class TestingConfig(Config):
     TESTING = True
     ENV = "testing"
     WTF_CSRF_ENABLED = False
-    SQLALCHEMY_TRACK_MODIFICATIONS = os.environ.get("SQLALCHEMY_TRACK_MODIFICATIONS")
     SQLALCHEMY_DATABASE_URI = os.environ.get("TEST_FLASK_BACK_1_DATABASE_URI")
     SQLALCHEMY_BINDS = {
         "flask_back_1": os.environ.get("TEST_FLASK_BACK_1_DATABASE_URI"),

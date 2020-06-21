@@ -223,7 +223,7 @@ def test_story_page_comments_hacker_news_top_stories(client):
     """
     insert_in_table(test_row, "hacker_news_top_stories")
     insert_in_table(test_comment_row, "hacker_news_top_stories_comments")
-    response = client.post(
+    response = client.get(
         f"/api/hacker_news/top_stories/story/{test_row['item_id']}/comments",
         data=json.dumps({"story_id": test_row["item_id"]}),
         content_type="application/json",

@@ -102,7 +102,7 @@ class UserLogin(Resource):
                         {
                             "message": f"Login succesfull {db_email_address.email_address}",
                             "user_uuid": db_email_address.user_uuid,
-                            "username": db_user.username,
+                            "username": db_email_address.username,
                         }
                     ),
                     200,

@@ -190,11 +190,26 @@ class HackerNews_TopStories_Story_Comments_Resource(Resource):
             incoming_comment = add_coment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        incoming_comment.pop("existed_comment_id")
+        incoming_comment.pop("existed_comment_text")
+        comment_data = HackerNews_TopStories_Comments(**incoming_comment)
+        hn_db.Base.session.add(comment_data)
+        hn_db.Base.session.commit()
+        return make_response(jsonify({"message": "Comment added",}), 201,)
+
+    def put(cls, story_id):
+        """
+        Getting PUT requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
+        endpoint, and updating hacker_news top_stories`s story`s comment
+        """
+        try:
+            incoming_comment = add_coment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
         if HackerNews_TopStories_Comments.query.filter(
             HackerNews_TopStories_Comments.comment_id
             == incoming_comment["existed_comment_id"]
         ).first():
-            print("id the same")
             HackerNews_TopStories_Comments.query.filter(
                 HackerNews_TopStories_Comments.comment_id
                 == incoming_comment["existed_comment_id"]
@@ -214,17 +229,29 @@ class HackerNews_TopStories_Story_Comments_Resource(Resource):
             hn_db.Base.session.commit()
             return make_response(jsonify({"message": "Comment updated",}), 201,)
         else:
-            incoming_comment.pop("existed_comment_id")
-            incoming_comment.pop("existed_comment_text")
-            comment_data = HackerNews_TopStories_Comments(**incoming_comment)
-            # db.session.add(comment_data)
-            hn_db.Base.session.add(comment_data)
+            return make_response(jsonify({"message": "Comment not found",}), 400,)
+
+    def delete(cls, story_id):
+        """
+        Getting DELETE requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
+        endpoint, and deleting hacker_news top_stories`s story`s comment
+        """
+        try:
+            incoming_comment = add_coment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        if HackerNews_TopStories_Comments.query.filter(
+            HackerNews_TopStories_Comments.comment_id
+            == incoming_comment["existed_comment_id"]
+        ).first():
+            HackerNews_TopStories_Comments.query.filter(
+                HackerNews_TopStories_Comments.comment_id
+                == incoming_comment["existed_comment_id"]
+            ).delete()
             hn_db.Base.session.commit()
-            # db.session.commit()
-            return make_response(jsonify({"message": "Comment added",}), 201,)
-
-
-###
+            return make_response(jsonify({"message": "Comment deleted",}), 201,)
+        else:
+            return make_response(jsonify({"message": "Comment not found",}), 400,)
 
 
 class HackerNews_NewStories_Resourse(Resource):
