@@ -47,7 +47,7 @@ class HackerNews_TopStories(Base):
     comments = relationship(
         "HackerNews_TopStories_Comments",
         backref="hacker_news_top_stories",
-        order_by="desc(HackerNews_TopStories_Comments.parse_dt)",
+        order_by="desc(HackerNews_TopStories_Comments.id)",
     )
 
 
@@ -101,7 +101,7 @@ class HackerNews_NewStories(Base):
     comments = relationship(
         "HackerNews_NewStories_Comments",
         backref="hacker_news_new_stories",
-        order_by="desc(HackerNews_NewStories_Comments.parse_dt)",
+        order_by="desc(HackerNews_NewStories_Comments.id)",
     )
 
 
