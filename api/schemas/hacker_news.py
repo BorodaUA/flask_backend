@@ -20,6 +20,7 @@ class Comments_Schema(Schema):
     text = fields.Str()
     time = fields.Int()
     comment_type = fields.Str()
+    origin = fields.Str()
 
 
 class Add_Comment_Schema(Schema):
@@ -34,6 +35,7 @@ class Add_Comment_Schema(Schema):
     text = fields.Str()
     time = fields.Int()
     comment_type = fields.Str()
+    origin = fields.Str()
 
 
 class HackerNews_TopStories_Schema(Schema):

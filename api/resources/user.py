@@ -46,13 +46,16 @@ class UserRegistration(Resource):
         while flag == True:
             try:
                 user["user_uuid"] = str(uuid4())
+                user["origin"] = "my_blog"
                 db_session.add(UserModel(**user))
                 db_session.commit()
                 return make_response(
                     jsonify(
                         {
                             "message": f"Registration succesfull {user['username']}",
+                            "username": user["username"],
                             "user_uuid": user["user_uuid"],
+                            "origin": user["origin"],
                         }
                     ),
                     201,
@@ -88,6 +91,7 @@ class UserLogin(Resource):
                             "message": f"Login succesfull {db_user.username}",
                             "user_uuid": db_user.user_uuid,
                             "username": db_user.username,
+                            "origin": db_user.origin,
                         }
                     ),
                     200,
@@ -103,6 +107,7 @@ class UserLogin(Resource):
                             "message": f"Login succesfull {db_email_address.email_address}",
                             "user_uuid": db_email_address.user_uuid,
                             "username": db_email_address.username,
+                            "origin": db_user.origin,
                         }
                     ),
                     200,

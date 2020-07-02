@@ -180,6 +180,7 @@ def test_hacker_news_top_stories_add_comment_by_wrong_type(client):
     response = json.loads(add_comment.data)
     assert ["Not a valid string."] == response["by"]
 
+
 def test_hacker_news_top_stories_add_comment_deleted_wrong_type(client):
     """
     test deleted not a Bool
@@ -221,7 +222,7 @@ def test_hacker_news_top_stories_add_comment_existed_comment_id_wrong_type(clien
                 "parse_dt": "2020-06-12 12:05:22.637",
                 "by": "test_user",
                 "deleted": False,
-                "existed_comment_id": {'wrong':'type'},
+                "existed_comment_id": {"wrong": "type"},
                 "existed_comment_text": "",
                 "comment_id": "11111",
                 "kids": [],
@@ -234,6 +235,7 @@ def test_hacker_news_top_stories_add_comment_existed_comment_id_wrong_type(clien
     )
     response = json.loads(add_comment.data)
     assert ["Not a valid integer."] == response["existed_comment_id"]
+
 
 def test_hacker_news_top_stories_add_comment_existed_comment_text_wrong_type(client):
     """
@@ -278,7 +280,7 @@ def test_hacker_news_top_stories_add_comment_comment_id_wrong_type(client):
                 "deleted": False,
                 "existed_comment_id": 0,
                 "existed_comment_text": "",
-                "comment_id": {'11111':1111},
+                "comment_id": {"11111": 1111},
                 "kids": [],
                 "parent": test_row["item_id"],
                 "text": "flask test comment v1",
@@ -289,6 +291,7 @@ def test_hacker_news_top_stories_add_comment_comment_id_wrong_type(client):
     )
     response = json.loads(add_comment.data)
     assert ["Not a valid integer."] == response["comment_id"]
+
 
 def test_hacker_news_top_stories_add_comment_kids_wrong_type(client):
     """
@@ -306,7 +309,7 @@ def test_hacker_news_top_stories_add_comment_kids_wrong_type(client):
                 "existed_comment_id": 0,
                 "existed_comment_text": "",
                 "comment_id": 11111,
-                "kids": {'wrong_type':True},
+                "kids": {"wrong_type": True},
                 "parent": test_row["item_id"],
                 "text": "flask test comment v1",
                 "time": 12112412,
@@ -335,7 +338,7 @@ def test_hacker_news_top_stories_add_comment_parent_wrong_type(client):
                 "existed_comment_text": "",
                 "comment_id": 11111,
                 "kids": [],
-                "parent": {'wrong_type': True},
+                "parent": {"wrong_type": True},
                 "text": "flask test comment v1",
                 "time": 12112412,
                 "comment_type": "comment",
@@ -364,7 +367,7 @@ def test_hacker_news_top_stories_add_comment_text_wrong_type(client):
                 "comment_id": 11111,
                 "kids": [],
                 "parent": test_row["item_id"],
-                "text": ['wrong','type'],
+                "text": ["wrong", "type"],
                 "time": 12112412,
                 "comment_type": "comment",
             }
@@ -392,8 +395,8 @@ def test_hacker_news_top_stories_add_comment_time_wrong_type(client):
                 "comment_id": 11111,
                 "kids": [],
                 "parent": test_row["item_id"],
-                "text": 'test comment text',
-                "time": ['wrong','type'],
+                "text": "test comment text",
+                "time": ["wrong", "type"],
                 "comment_type": "comment",
             }
         ),
@@ -420,9 +423,9 @@ def test_hacker_news_top_stories_add_comment_comment_type_wrong_type(client):
                 "comment_id": 11111,
                 "kids": [],
                 "parent": test_row["item_id"],
-                "text": 'test comment text',
+                "text": "test comment text",
                 "time": 12345657,
-                "comment_type": ['wrong','type'],
+                "comment_type": ["wrong", "type"],
             }
         ),
     )

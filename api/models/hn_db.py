@@ -49,6 +49,7 @@ class HackerNews_TopStories(Base):
         backref="hacker_news_top_stories",
         order_by="desc(HackerNews_TopStories_Comments.id)",
     )
+    origin = Column(String(128), nullable=False)
 
 
 class HackerNews_TopStories_Comments(Base):
@@ -69,6 +70,7 @@ class HackerNews_TopStories_Comments(Base):
     text = Column(String)
     time = Column(Integer)
     comment_type = Column(String)
+    origin = Column(String(128), nullable=False)
 
 
 class HackerNews_NewStories(Base):
@@ -103,6 +105,7 @@ class HackerNews_NewStories(Base):
         backref="hacker_news_new_stories",
         order_by="desc(HackerNews_NewStories_Comments.id)",
     )
+    origin = Column(String(128), nullable=False)
 
 
 class HackerNews_NewStories_Comments(Base):
@@ -123,3 +126,4 @@ class HackerNews_NewStories_Comments(Base):
     text = Column(String)
     time = Column(Integer)
     comment_type = Column(String)
+    origin = Column(String(128), nullable=False)
