@@ -2,6 +2,7 @@ from flask import Flask
 import os
 from sqlalchemy.orm import scoped_session, sessionmaker
 from flask_sqlalchemy import BaseQuery
+from sqlalchemy_utils import database_exists, create_database
 
 # from api.models import user, hn_db
 # from api.models.flask_sqlalchemy_bridge import user_db, hacker_news_db
@@ -35,6 +36,12 @@ def create_app(config_name):
 
         @app.before_first_request
         def create_tables():
+            back_engine = db.get_engine(bind="flask_back_1")
+            #print('www', back_engine.url)
+            if not database_exists(db.get_engine(bind="flask_back_1").url):
+                create_database(db.get_engine(bind="flask_back_1").url)
+            if not database_exists(db.get_engine(bind="hacker_news").url):
+                create_database(db.get_engine(bind="hacker_news").url)
             user.Base.session = scoped_session(
                 sessionmaker(
                     autocommit=False,
