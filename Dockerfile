@@ -1,15 +1,21 @@
 FROM python:3.8.3-alpine
-RUN mkdir /usr/src/back_1/
-WORKDIR /usr/src/back_1/
+#
+RUN mkdir /usr/src/flask_backend/
+WORKDIR /usr/src/flask_backend/
+#
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-RUN apk update \
-    && apk add postgresql-dev gcc python3-dev musl-dev
+#
+RUN apk update
 RUN apk add --no-cache \
-        libressl-dev \
-        musl-dev \
-        libffi-dev \
-        zeromq-dev
-COPY . /usr/src/back_1/
+    postgresql-dev \
+    gcc \
+    python3-dev \
+    musl-dev \
+    libressl-dev \
+    libffi-dev \
+    zeromq-dev
+COPY . /usr/src/flask_backend/
 RUN pip install -r requirements.txt
-CMD [ "python", "run.py" ]
+#
+ENTRYPOINT ["sh", "entrypoint.sh"]

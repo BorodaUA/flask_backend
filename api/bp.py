@@ -5,8 +5,13 @@ from .resources.hacker_news import (
     HackerNews_TopStories_Resourse,
     HackerNews_TopStories_Story_Resource,
     HackerNews_TopStories_Story_Comments_Resource,
-    HackerNews_NewStories_Resourse,
+    HackerNews_NewStories_Resource,
     HackerNews_NewStories_Story_Resource,
+)
+from .resources.blog_news import (
+    BlogNews_Stories_Resource,
+    BlogNews_StoriesPages_Resource,
+    BlogNews_Stories_Comments_Resource,
 )
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -28,16 +33,22 @@ api.add_resource(
 )
 api.add_resource(
     HackerNews_TopStories_Story_Resource,
-    "/hacker_news/top_stories/story/<int:story_id>",
+    "/hacker_news/top_stories/stories/<int:story_id>",
 )
 api.add_resource(
     HackerNews_TopStories_Story_Comments_Resource,
-    "/hacker_news/top_stories/story/<int:story_id>/comments",
+    "/hacker_news/top_stories/stories/<int:story_id>/comments",
 )
 api.add_resource(
-    HackerNews_NewStories_Resourse, "/hacker_news/new_stories/<int:page_number>"
+    HackerNews_NewStories_Resource, "/hacker_news/new_stories/<int:page_number>"
 )
 api.add_resource(
     HackerNews_NewStories_Story_Resource,
-    "/hacker_news/new_stories/story/<int:story_id>",
+    "/hacker_news/new_stories/stories/<int:story_id>",
+)
+###
+api.add_resource(BlogNews_Stories_Resource, "/submit")
+api.add_resource(BlogNews_StoriesPages_Resource, "/blog_news/<int:page_number>")
+api.add_resource(
+    BlogNews_Stories_Comments_Resource, "/blog_news/stories/<int:story_id>/comments"
 )

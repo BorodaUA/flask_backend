@@ -14,22 +14,13 @@ from sqlalchemy.orm import relationship
 Base = declarative_base()
 
 
-class HackerNews_TopStories(Base):
-
+class HackerNewsTopStory(Base):
     __bind_key__ = "hacker_news"
+    __tablename__ = "hacker_news_top_story"
     #
-    __tablename__ = "hacker_news_top_stories"
-    #
-    #
-    id = Column(Integer, autoincrement=True)
-    #
-    parse_dt = Column(DateTime)
-    #
-    hn_url = Column(String)
-    #
-    item_id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, nullable=False)
     deleted = Column(Boolean)
-    item_type = Column(String)
+    type = Column(String)
     by = Column(String)
     time = Column(Integer)
     text = Column(String)
@@ -42,52 +33,48 @@ class HackerNews_TopStories(Base):
     title = Column(String)
     parts = Column(JSON)
     descendants = Column(Integer)
-
-    ###
+    #
     comments = relationship(
-        "HackerNews_TopStories_Comments",
-        backref="hacker_news_top_stories",
-        order_by="desc(HackerNews_TopStories_Comments.id)",
+        "HackerNewsTopStoryComment",
+        backref="hacker_news_top_story",
+        order_by="desc(HackerNewsTopStoryComment.parsed_time)",
     )
-    origin = Column(String(128), nullable=False)
-
-
-class HackerNews_TopStories_Comments(Base):
-
-    __tablename__ = "hacker_news_top_stories_comments"
     #
+    origin = Column(String)
+    parsed_time = Column(DateTime)
+
+
+class HackerNewsTopStoryComment(Base):
     __bind_key__ = "hacker_news"
+    __tablename__ = "hacker_news_top_story_comment"
     #
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    #
-    parse_dt = Column(DateTime)
-    #
+    id = Column(Integer, primary_key=True, nullable=False)
+    deleted = Column(Boolean)
+    type = Column(String)
     by = Column(String)
-    deleted = Column(Boolean)
-    comment_id = Column(Integer)
-    kids = Column(JSON)
-    parent = Column(Integer, ForeignKey("hacker_news_top_stories.item_id"))
-    text = Column(String)
     time = Column(Integer)
-    comment_type = Column(String)
-    origin = Column(String(128), nullable=False)
-
-
-class HackerNews_NewStories(Base):
-
-    __tablename__ = "hacker_news_new_stories"
+    text = Column(String)
+    dead = Column(Boolean)
+    parent = Column(Integer, ForeignKey("hacker_news_top_story.id"))
+    poll = Column(Integer)
+    kids = Column(JSON)
+    url = Column(String)
+    score = Column(Integer)
+    title = Column(String)
+    parts = Column(JSON)
+    descendants = Column(Integer)
     #
+    origin = Column(String)
+    parsed_time = Column(DateTime)
+
+
+class HackerNewsNewStory(Base):
     __bind_key__ = "hacker_news"
+    __tablename__ = "hacker_news_new_story"
     #
-    id = Column(Integer)
-    #
-    parse_dt = Column(DateTime)
-    #
-    hn_url = Column(String)
-    #
-    item_id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, nullable=False)
     deleted = Column(Boolean)
-    item_type = Column(String)
+    type = Column(String)
     by = Column(String)
     time = Column(Integer)
     text = Column(String)
@@ -101,29 +88,33 @@ class HackerNews_NewStories(Base):
     parts = Column(JSON)
     descendants = Column(Integer)
     comments = relationship(
-        "HackerNews_NewStories_Comments",
-        backref="hacker_news_new_stories",
-        order_by="desc(HackerNews_NewStories_Comments.id)",
+        "HackerNewsNewStoryComment",
+        backref="hacker_news_new_story",
+        order_by="desc(HackerNewsNewStoryComment.id)",
     )
-    origin = Column(String(128), nullable=False)
+    origin = Column(String)
+    parsed_time = Column(DateTime)
 
 
-class HackerNews_NewStories_Comments(Base):
-
-    __tablename__ = "hacker_news_new_stories_comments"
-    #
+class HackerNewsNewStoryComment(Base):
     __bind_key__ = "hacker_news"
-
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    __tablename__ = "hacker_news_new_story_comment"
     #
-    parse_dt = Column(DateTime)
-    #
-    by = Column(String)
+    id = Column(Integer, primary_key=True, nullable=False)
     deleted = Column(Boolean)
-    comment_id = Column(Integer)
-    kids = Column(JSON)
-    parent = Column(Integer, ForeignKey("hacker_news_new_stories.item_id"))
-    text = Column(String)
+    type = Column(String)
+    by = Column(String)
     time = Column(Integer)
-    comment_type = Column(String)
-    origin = Column(String(128), nullable=False)
+    text = Column(String)
+    dead = Column(Boolean)
+    parent = Column(Integer, ForeignKey("hacker_news_new_story.id"))
+    poll = Column(Integer)
+    kids = Column(JSON)
+    url = Column(String)
+    score = Column(Integer)
+    title = Column(String)
+    parts = Column(JSON)
+    descendants = Column(Integer)
+    #
+    origin = Column(String)
+    parsed_time = Column(DateTime)

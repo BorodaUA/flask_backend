@@ -1,17 +1,17 @@
 from flask import request, jsonify, make_response, jsonify
 from flask_restful import Resource
 from api.models.hn_db import (
-    HackerNews_TopStories,
-    HackerNews_TopStories_Comments,
-    HackerNews_NewStories,
-    HackerNews_NewStories_Comments,
+    HackerNewsTopStory,
+    HackerNewsTopStoryComment,
+    HackerNewsNewStory,
+    HackerNewsNewStoryComment,
 )
 from api.schemas.hacker_news import (
-    HackerNews_TopStories_Schema,
+    HackerNewsTopStorySchema,
     HackerNews_NewStories_Schema,
-    NewsPagination_Schema,
-    Story_id_Schema,
-    Comments_Schema,
+    PaginationSchema,
+    StorySchema,
+    HackerNewsCommentSchema,
     Add_Comment_Schema,
 )
 from sqlalchemy import desc
@@ -21,55 +21,55 @@ from marshmallow import ValidationError
 from api.models import hn_db
 
 
-top_stories_schema = HackerNews_TopStories_Schema(
+top_stories_schema = HackerNewsTopStorySchema(
     many=True,
-    exclude=[
-        "id",
-        "comments",
-        "parse_dt",
-        "deleted",
-        "item_type",
-        "time",
-        "dead",
-        "parent",
-        "poll",
-        "kids",
-        "parts",
-        "descendants",
-    ],
+    # exclude=[
+    #     "id",
+    #     "comments",
+    #     "parsed_time",
+    #     "deleted",
+    #     "type",
+    #     "time",
+    #     "dead",
+    #     "parent",
+    #     "poll",
+    #     "kids",
+    #     "parts",
+    #     "descendants",
+    # ],
 )
-top_story_schema = HackerNews_TopStories_Schema(
-    exclude=[
-        "id",
-        "parse_dt",
-        "deleted",
-        "item_type",
-        "time",
-        "dead",
-        "parent",
-        "poll",
-        "kids",
-        "parts",
-        "descendants",
-    ],
+top_story_schema = HackerNewsTopStorySchema(
+    # exclude=[
+    #     "id",
+    #     "parsed_time",
+    #     "deleted",
+    #     "type",
+    #     "time",
+    #     "dead",
+    #     "parent",
+    #     "poll",
+    #     "kids",
+    #     "parts",
+    #     "descendants",
+    # ],
 )
 #
 new_stories_schema = HackerNews_NewStories_Schema(
     many=True,
-    exclude=[
-        "id",
-        "comments",
-        "parse_dt",
-        "deleted",
-        "item_type",
-        "time",
-        "dead",
-        "parent",
-        "poll",
-        "kids",
-        "parts",
-        "descendants",
-    ],
+    # exclude=[
+    #     "id",
+    #     "comments",
+    #     "parse_dt",
+    #     "deleted",
+    #     "item_type",
+    #     "time",
+    #     "dead",
+    #     "parent",
+    #     "poll",
+    #     "kids",
+    #     "parts",
+    #     "descendants",
+    # ],
 )
 #
 new_story_schema = HackerNews_NewStories_Schema(
@@ -88,17 +88,17 @@ new_story_schema = HackerNews_NewStories_Schema(
     ],
 )
 #
-news_pagination = NewsPagination_Schema()
-story_id_schema = Story_id_Schema()
-comments_schema = Comments_Schema(many=True)
+news_pagination = PaginationSchema()
+story_id_schema = StorySchema()
+comments_schema = HackerNewsCommentSchema(many=True)
 add_coment_schema = Add_Comment_Schema()
 
 
 class HackerNews_TopStories_Resourse(Resource):
     @classmethod
-    def post(cls, page_number):
+    def get(cls, page_number):
         """
-        Getting POST requests on the '/api/hacker_news/top_stories/<page_number>' 
+        Getting GET requests on the '/api/hacker_news/top_stories/<page_number>' 
         endpoint, and returning a page with 30 hacker_news top_stories in database.
         """
         try:
@@ -107,10 +107,10 @@ class HackerNews_TopStories_Resourse(Resource):
             return err.messages, 400
         if incoming_pagination["page_number"] <= 0:
             return {"message": "pagination must be >= 1"}, 400
-        if not HackerNews_TopStories.query.all():
+        if not HackerNewsTopStory.query.all():
             return {"message": "No top_stories in this table"}, 400
         page = paginate(
-            HackerNews_TopStories.query.order_by(desc(HackerNews_TopStories.parse_dt))
+            HackerNewsTopStory.query.order_by(desc(HackerNewsTopStory.parsed_time))
             .limit(500)
             .from_self(),
             incoming_pagination["page_number"],
@@ -133,24 +133,24 @@ class HackerNews_TopStories_Resourse(Resource):
 
 class HackerNews_TopStories_Story_Resource(Resource):
     @classmethod
-    def post(cls, story_id):
+    def get(cls, story_id):
         """
-        Getting POST requests on the '/api/hacker_news/top_stories/story/<story_id>' 
+        Getting GET requests on the '/api/hacker_news/top_stories/story/<story_id>' 
         endpoint, and returning a hacker_news top_stories`s story with comments
         """
         try:
             incoming_story_id = story_id_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNews_TopStories.query.filter(
-            HackerNews_TopStories.item_id == incoming_story_id["story_id"]
+        if not HackerNewsTopStory.query.filter(
+            HackerNewsTopStory.id == incoming_story_id["story_id"]
         ).first():
             return {"message": "Story not found"}, 400
         story = (
-            HackerNews_TopStories.query.filter(
-                HackerNews_TopStories.item_id == incoming_story_id["story_id"],
+            HackerNewsTopStory.query.filter(
+                HackerNewsTopStory.id == incoming_story_id["story_id"],
             )
-            .order_by(HackerNews_TopStories.parse_dt)
+            .order_by(HackerNewsTopStory.parsed_time)
             .first()
         )
 
@@ -168,15 +168,15 @@ class HackerNews_TopStories_Story_Comments_Resource(Resource):
             incoming_story_id = story_id_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNews_TopStories.query.filter(
-            HackerNews_TopStories.item_id == incoming_story_id["story_id"]
+        if not HackerNewsTopStory.query.filter(
+            HackerNewsTopStory.id == incoming_story_id["story_id"]
         ).first():
             return {"message": "Comments not found"}, 400
         comments = (
-            HackerNews_TopStories_Comments.query.filter(
-                HackerNews_TopStories_Comments.parent == incoming_story_id["story_id"]
+            HackerNewsTopStoryComment.query.filter(
+                HackerNewsTopStoryComment.parent == incoming_story_id["story_id"]
             )
-            .order_by(desc(HackerNews_TopStories_Comments.parse_dt))
+            .order_by(desc(HackerNewsTopStoryComment.parsed_time))
             .all()
         )
         return jsonify(comments_schema.dump(comments))
@@ -190,12 +190,16 @@ class HackerNews_TopStories_Story_Comments_Resource(Resource):
             incoming_comment = add_coment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        if not HackerNewsTopStory.query.filter(
+            HackerNewsTopStory.id == incoming_comment["parent"]
+        ).first():
+            return make_response(jsonify({"message": "Story not found"}), 400)
         incoming_comment.pop("existed_comment_id")
         incoming_comment.pop("existed_comment_text")
-        comment_data = HackerNews_TopStories_Comments(**incoming_comment)
+        comment_data = HackerNewsTopStoryComment(**incoming_comment)
         hn_db.Base.session.add(comment_data)
         hn_db.Base.session.commit()
-        return make_response(jsonify({"message": "Comment added",}), 201,)
+        return make_response(jsonify({"message": "Comment added"}), 201,)
 
     def put(cls, story_id):
         """
@@ -206,24 +210,28 @@ class HackerNews_TopStories_Story_Comments_Resource(Resource):
             incoming_comment = add_coment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if HackerNews_TopStories_Comments.query.filter(
-            HackerNews_TopStories_Comments.comment_id
+        if not HackerNewsTopStory.query.filter(
+            HackerNewsTopStory.id == incoming_comment["parent"]
+        ).first():
+            return make_response(jsonify({"message": "Story not found"}), 400)
+        if HackerNewsTopStoryComment.query.filter(
+            HackerNewsTopStoryComment.id
             == incoming_comment["existed_comment_id"]
         ).first():
-            HackerNews_TopStories_Comments.query.filter(
-                HackerNews_TopStories_Comments.comment_id
+            HackerNewsTopStoryComment.query.filter(
+                HackerNewsTopStoryComment.id
                 == incoming_comment["existed_comment_id"]
             ).update(
                 {
-                    "parse_dt": incoming_comment["parse_dt"],
+                    "parsed_time": incoming_comment["parsed_time"],
                     "by": incoming_comment["by"],
                     "deleted": incoming_comment["deleted"],
-                    "comment_id": int(incoming_comment["existed_comment_id"]),
+                    "id": int(incoming_comment["existed_comment_id"]),
                     "kids": incoming_comment["kids"],
                     "parent": incoming_comment["parent"],
                     "text": incoming_comment["text"],
                     "time": incoming_comment["time"],
-                    "comment_type": incoming_comment["comment_type"],
+                    "type": incoming_comment["type"],
                 }
             )
             hn_db.Base.session.commit()
@@ -240,12 +248,16 @@ class HackerNews_TopStories_Story_Comments_Resource(Resource):
             incoming_comment = add_coment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if HackerNews_TopStories_Comments.query.filter(
-            HackerNews_TopStories_Comments.comment_id
+        if not HackerNewsTopStory.query.filter(
+            HackerNewsTopStory.id == incoming_comment["parent"]
+        ).first():
+            return make_response(jsonify({"message": "Story not found"}), 400)
+        if HackerNewsTopStoryComment.query.filter(
+            HackerNewsTopStoryComment.id
             == incoming_comment["existed_comment_id"]
         ).first():
-            HackerNews_TopStories_Comments.query.filter(
-                HackerNews_TopStories_Comments.comment_id
+            HackerNewsTopStoryComment.query.filter(
+                HackerNewsTopStoryComment.id
                 == incoming_comment["existed_comment_id"]
             ).delete()
             hn_db.Base.session.commit()
@@ -254,11 +266,11 @@ class HackerNews_TopStories_Story_Comments_Resource(Resource):
             return make_response(jsonify({"message": "Comment not found",}), 400,)
 
 
-class HackerNews_NewStories_Resourse(Resource):
+class HackerNews_NewStories_Resource(Resource):
     @classmethod
-    def post(cls, page_number):
+    def get(cls, page_number):
         """
-        Getting POST requests on the '/api/hacker_news/new_stories/<page_number>' 
+        Getting GET requests on the '/api/hacker_news/new_stories/<page_number>' 
         endpoint, and returning a page with 30 hacker_news new_stories in database.
         """
         try:
@@ -266,12 +278,15 @@ class HackerNews_NewStories_Resourse(Resource):
         except ValidationError as err:
             return err.messages, 400
 
-        if not HackerNews_NewStories.query.all():
-            return {"message": "No new_stories in this table"}, 400
+        if not HackerNewsNewStory.query.all():
+            return (
+                {"message": "HackerNewsTopStoryComment new_stories in this table"},
+                400,
+            )
         if incoming_pagination["page_number"] <= 0:
             return {"message": "pagination must be >= 1"}, 400
         page = paginate(
-            HackerNews_NewStories.query.order_by(desc(HackerNews_NewStories.parse_dt))
+            HackerNewsNewStory.query.order_by(desc(HackerNewsNewStory.parsed_time))
             .limit(500)
             .from_self(),
             incoming_pagination["page_number"],
@@ -294,24 +309,24 @@ class HackerNews_NewStories_Resourse(Resource):
 
 class HackerNews_NewStories_Story_Resource(Resource):
     @classmethod
-    def post(cls, story_id):
+    def get(cls, story_id):
         """
-        Getting POST requests on the '/api/hacker_news/new_stories/story/<story_id>' 
+        Getting GET requests on the '/api/hacker_news/new_stories/story/<story_id>' 
         endpoint, and returning a hacker_news new_stories`s story with comments
         """
         try:
             incoming_story_id = story_id_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNews_NewStories.query.filter(
-            HackerNews_NewStories.item_id == incoming_story_id["story_id"]
+        if not HackerNewsNewStory.query.filter(
+            HackerNewsNewStory.id == incoming_story_id["story_id"]
         ).first():
             return {"message": "Story not found"}, 400
         story = (
-            HackerNews_NewStories.query.filter(
-                HackerNews_NewStories.item_id == incoming_story_id["story_id"],
+            HackerNewsNewStory.query.filter(
+                HackerNewsNewStory.id == incoming_story_id["story_id"],
             )
-            .order_by(HackerNews_NewStories.parse_dt)
+            .order_by(HackerNewsNewStory.parsed_time)
             .first()
         )
 

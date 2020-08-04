@@ -3,6 +3,6 @@
 __pycache__
 .env
 /api/__pycache__
-/flask_back_1/__pycache__
+/flask_backend/__pycache__
 /tests/.pytest_cache
 /tests/__pycache__

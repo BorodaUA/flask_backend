@@ -6,7 +6,7 @@ Base = declarative_base()
 
 
 class UserModel(Base):
-    __bind_key__ = "flask_back_1"
+    __bind_key__ = "flask_backend"
     #
     __tablename__ = "users"
     #

@@ -8,7 +8,7 @@ from uuid import uuid4
 topdir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(topdir)
 
-from flask_back_1 import create_app, db
+from flask_backen import create_app, db
 from api.models import hn_db
 from sqlalchemy.orm import scoped_session, sessionmaker
 

@@ -8,7 +8,7 @@ from uuid import uuid4
 topdir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(topdir)
 
-from flask_back_1 import create_app, db
+from flask_backend import create_app, db
 from api.models import user
 from sqlalchemy.orm import scoped_session, sessionmaker
 
@@ -27,18 +27,18 @@ def client():
                 sessionmaker(
                     autocommit=False,
                     autoflush=False,
-                    bind=db.get_engine(bind="flask_back_1"),
+                    bind=db.get_engine(bind="flask_backend"),
                 )
             )
             user.Base.query = user.Base.session.query_property()
-            user.Base.metadata.create_all(db.get_engine(bind="flask_back_1"))
+            user.Base.metadata.create_all(db.get_engine(bind="flask_backend"))
 
         yield client
 
         @app.teardown_appcontext
         def shutdown_session_and_delete_table(exception=None):
             user.Base.session.remove()
-            user.Base.metadata.drop_all(db.get_engine(bind="flask_back_1"))
+            user.Base.metadata.drop_all(db.get_engine(bind="flask_backend"))
 
 
 def test_api_home_page(client):
