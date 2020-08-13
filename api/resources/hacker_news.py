@@ -128,6 +128,8 @@ class HackerNews_TopStories_Resourse(Resource):
         }
         if incoming_pagination["page_number"] > result_page["pages"]:
             return {"message": "Pagination page not found"}, 400
+        hn_db.Base.session.commit()
+        hn_db.Base.session.close()
         return jsonify(result_page)
 
 

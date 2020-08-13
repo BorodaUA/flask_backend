@@ -14,7 +14,8 @@ RUN apk add --no-cache \
     musl-dev \
     libressl-dev \
     libffi-dev \
-    zeromq-dev
+    zeromq-dev \
+    git
 COPY . /usr/src/flask_backend/
 RUN pip install -r requirements.txt
 #
