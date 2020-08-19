@@ -73,19 +73,19 @@ new_stories_schema = HackerNews_NewStories_Schema(
 )
 #
 new_story_schema = HackerNews_NewStories_Schema(
-    exclude=[
-        "id",
-        "parse_dt",
-        "deleted",
-        "item_type",
-        "time",
-        "dead",
-        "parent",
-        "poll",
-        "kids",
-        "parts",
-        "descendants",
-    ],
+    # exclude=[
+    #     "id",
+    #     "parse_dt",
+    #     "deleted",
+    #     "item_type",
+    #     "time",
+    #     "dead",
+    #     "parent",
+    #     "poll",
+    #     "kids",
+    #     "parts",
+    #     "descendants",
+    # ],
 )
 #
 news_pagination = PaginationSchema()

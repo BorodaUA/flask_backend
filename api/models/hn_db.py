@@ -90,7 +90,7 @@ class HackerNewsNewStory(Base):
     comments = relationship(
         "HackerNewsNewStoryComment",
         backref="hacker_news_new_story",
-        order_by="desc(HackerNewsNewStoryComment.id)",
+        order_by="desc(HackerNewsNewStoryComment.parsed_time)",
     )
     origin = Column(String)
     parsed_time = Column(DateTime)
