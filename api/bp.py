@@ -10,8 +10,7 @@ from .resources.hacker_news import (
 )
 from .resources.blog_news import (
     BlogNewsStoriesResource,
-    BlogNews_StoriesPages_Resource,
-    BlogNews_Stories_Comments_Resource,
+    BlogNewsStoryResource,
 )
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -49,5 +48,5 @@ api.add_resource(
 ###
 api.add_resource(BlogNewsStoriesResource, "/blognews/", methods=["GET", "POST"])
 api.add_resource(
-    BlogNews_Stories_Comments_Resource, "/blog_news/stories/<int:story_id>/comments"
+    BlogNewsStoryResource, "/blognews/<int:story_id>", methods=["GET"]
 )
