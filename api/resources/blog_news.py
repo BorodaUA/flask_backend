@@ -175,6 +175,28 @@ class BlogNewsStoryResource(Resource):
         ).first()
         return make_response(jsonify(story_schema.dump(story)), 200)
 
+    @classmethod
+    def delete(cls, story_id):
+        """
+        Getting DELETE requests on the '/api/blog_news/<story_id>' 
+        endpoint, and deleating a blognews story
+        """
+        try:
+            story_id = {'story_id': story_id}
+            incoming_story_id = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        if not BlogNewsStory.query.filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).first():
+            return make_response(jsonify({"message": "Story not found", "code": 404}), 404)
+        story = BlogNewsStory.query.filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).first()
+        blog_news.Base.session.delete(story)
+        blog_news.Base.session.commit()
+        return make_response(jsonify({"message": "Story deleted", "code": 200}), 200,)
+
 
 # class BlogNews_Stories_Comments_Resource(Resource):
 #     @classmethod
