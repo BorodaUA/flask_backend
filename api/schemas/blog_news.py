@@ -15,8 +15,8 @@ class Comments_Schema(Schema):
     origin = fields.Str()
 
 
-class NewsPagination_Schema(Schema):
-    page_number = fields.Int(required=True)
+class NewsPaginationSchema(Schema):
+    pagenumber = fields.Int(required=True)
 
 
 class Story_id_Schema(Schema):

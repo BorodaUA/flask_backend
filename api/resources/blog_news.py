@@ -4,7 +4,7 @@ from api.models.blog_news import BlogNewsStory, BlogNewsStoryComment
 from api.schemas.blog_news import (
     BlogNews_Stories_Schema,
     Comments_Schema,
-    NewsPagination_Schema,
+    NewsPaginationSchema,
     Story_id_Schema,
     Comments_Schema,
     Add_Comment_Schema,
@@ -14,8 +14,9 @@ from sqlalchemy_pagination import paginate
 from marshmallow import ValidationError
 from api.models import blog_news
 from datetime import datetime
+import time
 
-news_pagination = NewsPagination_Schema()
+news_pagination_schema = NewsPaginationSchema()
 story_id_schema = Story_id_Schema()
 comments_schema = Comments_Schema(many=True)
 add_coment_schema = Add_Comment_Schema()
@@ -23,35 +24,35 @@ add_coment_schema = Add_Comment_Schema()
 
 blog_stories_schema = BlogNews_Stories_Schema(
     many=True,
-    exclude=[
-        "id",
-        "parse_dt",
-        "deleted",
-        "item_type",
-        "time",
-        "dead",
-        "parent",
-        "poll",
-        "kids",
-        "parts",
-        "descendants",
-    ],
+    # exclude=[
+    #     "id",
+    #     "parse_dt",
+    #     "deleted",
+    #     "item_type",
+    #     "time",
+    #     "dead",
+    #     "parent",
+    #     "poll",
+    #     "kids",
+    #     "parts",
+    #     "descendants",
+    # ],
 )
 
 blog_story_schema = BlogNews_Stories_Schema(
-    exclude=[
-        "id",
-        "parse_dt",
-        "deleted",
-        "item_type",
-        "time",
-        "dead",
-        "parent",
-        "poll",
-        "kids",
-        "parts",
-        "descendants",
-    ],
+    # exclude=[
+    #     "id",
+    #     "parse_dt",
+    #     "deleted",
+    #     "item_type",
+    #     "time",
+    #     "dead",
+    #     "parent",
+    #     "poll",
+    #     "kids",
+    #     "parts",
+    #     "descendants",
+    # ],
 )
 
 # {
@@ -75,62 +76,37 @@ blog_story_schema = BlogNews_Stories_Schema(
 # "comments": [],
 # "origin": "blog_news"
 # }
-class BlogNews_Stories_Resource(Resource):
+class BlogNewsStoriesResource(Resource):
     @classmethod
-    def post(cls):
+    def get(cls):
         """
-        Getting POST requests on the '/api/submit' endpoint, and
-        saving new story to the database.
+        Getting GET requests on the '/api/blog_news/?pagenumber=N' 
+        endpoint, and returning a list of blognews stories
         """
         try:
-            story = blog_story_schema.load(request.get_json())
+            pagenumber = {"pagenumber": request.args.get("pagenumber")}
+            incoming_pagination = news_pagination_schema.load(pagenumber)
         except ValidationError as err:
             return err.messages, 400
-        full_story = {
-            "time": datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S.%f")[:-3],
-            "deleted": False,
-            "item_type": "story",
-            "by": story["by"],
-            "text": story["text"],
-            "dead": False,
-            "parent": 0,
-            "poll": 0,
-            "score": 1,
-            "title": story["title"],
-            "parts": [],
-            "descendants": 1,
-            "origin": "blog_story",
-        }
-        data = BlogNews_Stories(**full_story)
-        blog_news.Base.session.add(data)
-        blog_news.Base.session.commit()
-        return make_response(jsonify({"message": "Story added",}), 201,)
-
-
-class BlogNews_StoriesPages_Resource(Resource):
-    @classmethod
-    def get(cls, page_number):
-        """
-        Getting GET requests on the '/api/blog_news/<page_number>' 
-        endpoint, and returning a list of blog_news top_stories
-        """
-        try:
-            incoming_pagination = news_pagination.load(request.get_json())
-        except ValidationError as err:
-            return err.messages, 400
-        if incoming_pagination["page_number"] <= 0:
-            return {"message": "pagination must be >= 1"}, 400
-        if not blog_news.BlogNews_Stories.query.all():
-            return {"message": "No blog stories found"}, 400
+        if incoming_pagination["pagenumber"] <= 0:
+            return make_response(
+                jsonify({"message": "pagenumber must be greater then 0", "code": 400}),
+                400,
+            )
+        if not blog_news.BlogNewsStory.query.all():
+            return make_response(
+                jsonify({"message": "No blog stories found", "code": 400}),
+                400,
+            )
         page = paginate(
-            BlogNews_Stories.query.order_by(desc(BlogNews_Stories.time))
+            BlogNewsStory.query.order_by(desc(BlogNewsStory.time))
             .limit(500)
             .from_self(),
-            incoming_pagination["page_number"],
+            incoming_pagination["pagenumber"],
             30,
         )
         result_page = {
-            "current_page": incoming_pagination["page_number"],
+            "current_page": incoming_pagination["pagenumber"],
             "has_next": page.has_next,
             "has_previous": page.has_previous,
             "items": blog_stories_schema.dump(page.items),
@@ -139,8 +115,89 @@ class BlogNews_StoriesPages_Resource(Resource):
             "pages": page.pages,
             "total": page.total,
         }
-        if incoming_pagination["page_number"] > result_page["pages"]:
-            return {"message": "Pagination page not found"}, 400
+        if incoming_pagination["pagenumber"] > result_page["pages"]:
+            return make_response(
+                jsonify({"message": "Pagination page not found", "code": 400}),
+                400,
+            )
+        return jsonify(result_page)
+
+
+    @classmethod
+    def post(cls):
+        """
+        Getting POST requests on the '/api/blognews/' endpoint, and
+        saving new story to the database.
+        """
+        try:
+            story = blog_story_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        full_story = {
+            "time": int(time.time()),
+            "deleted": False,
+            "type": "story",
+            "by": story["by"],
+            "text": story["text"],
+            "dead": False,
+            "parent": None,
+            "poll": None,
+            "score": 1,
+            "title": story["title"],
+            "parts": [],
+            "descendants": None,
+            "origin": "blogstory",
+        }
+        data = BlogNewsStory(**full_story)
+        blog_news.Base.session.add(data)
+        blog_news.Base.session.commit()
+        return make_response(jsonify({"message": "Story added", "code": 201}), 201,)
+
+
+class BlogNews_StoriesPages_Resource(Resource):
+    @classmethod
+    def get(cls):
+        """
+        Getting GET requests on the '/api/blog_news/<page_number>' 
+        endpoint, and returning a list of blog_news top_stories
+        """
+        try:
+            pagenumber = {"pagenumber": request.args["pagenumber"]}
+            incoming_pagination = news_pagination.load(pagenumber)
+        except ValidationError as err:
+            return err.messages, 400
+        if incoming_pagination["pagenumber"] <= 0:
+            return make_response(
+                jsonify({"message": "pagenumber must be greater then 0", "code": 400}),
+                400,
+            )
+        if not blog_news.BlogNewsStory.query.all():
+            return make_response(
+                jsonify({"message": "No blog stories found", "code": 400}),
+                400,
+            )
+        page = paginate(
+            BlogNewsStory.query.order_by(desc(BlogNewsStory.time))
+            .limit(500)
+            .from_self(),
+            incoming_pagination["pagenumber"],
+            30,
+        )
+        result_page = {
+            "current_page": incoming_pagination["pagenumber"],
+            "has_next": page.has_next,
+            "has_previous": page.has_previous,
+            "items": blog_stories_schema.dump(page.items),
+            "next_page": page.next_page,
+            "previous_page": page.previous_page,
+            "pages": page.pages,
+            "total": page.total,
+        }
+        if incoming_pagination["pagenumber"] > result_page["pages"]:
+            return make_response(
+                jsonify({"message": "Pagination page not found", "code": 400}),
+                400,
+            )
         return jsonify(result_page)
 
 
