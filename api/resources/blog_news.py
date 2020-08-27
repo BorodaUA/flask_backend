@@ -6,6 +6,7 @@ from api.schemas.blog_news import (
     BlogNewsCommentSchema,
     NewsPaginationSchema,
     StoryIdSchema,
+    CommentIdSchema,
 )
 from sqlalchemy import desc
 from sqlalchemy_pagination import paginate
@@ -16,6 +17,7 @@ import time
 
 news_pagination_schema = NewsPaginationSchema()
 story_id_schema = StoryIdSchema()
+comment_id_schema = CommentIdSchema()
 story_schema = BlogNewsStorySchema()
 stories_schema = BlogNewsStorySchema(many=True)
 add_story_schema = BlogNewsStorySchema(
@@ -337,6 +339,36 @@ class BlogNewsStoryCommentsResource(Resource):
         blog_news.Base.session.commit()
         return make_response(jsonify({"message": "Comment added", "code": 201}), 201,)
 
+
+class BlogNewsStoryCommentResource(Resource):
+    @classmethod
+    def get(cls, story_id, comment_id):
+        """
+        Getting GET requests on the '/api/blognews/<story_id>/comments/<comment_id>' 
+        endpoint, and returning a blognews story comment by id
+        """
+        try:
+            story_id = {'story_id': story_id}
+            incoming_story_id = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        try:
+            comment_id = {'comment_id': comment_id}
+            incoming_comment_id = comment_id_schema.load(comment_id)
+        except ValidationError as err:
+            return err.messages, 400    
+        if not BlogNewsStory.query.filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).first():
+            return make_response(jsonify({"message": "Story not found", "code": 404}), 404)
+        if not BlogNewsStoryComment.query.filter(
+            BlogNewsStoryComment.id == incoming_comment_id['comment_id']
+        ).first():
+            return make_response(jsonify({"message": "Comment not found", "code": 404}), 404)
+        comment = BlogNewsStoryComment.query.filter(
+            BlogNewsStoryComment.id == incoming_comment_id['comment_id']
+        ).first()
+        return make_response(jsonify(story_schema.dump(comment)), 200)
 
 # def post(cls, story_id):
 #         """

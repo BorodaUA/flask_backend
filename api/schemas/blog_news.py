@@ -18,6 +18,8 @@ from marshmallow import Schema, fields, validate
 class NewsPaginationSchema(Schema):
     pagenumber = fields.Int(required=True)
 
+class CommentIdSchema(Schema):
+    comment_id = fields.Int(required=True)
 
 class StoryIdSchema(Schema):
     story_id = fields.Int(required=True)
