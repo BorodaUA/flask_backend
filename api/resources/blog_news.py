@@ -400,8 +400,44 @@ class BlogNewsStoryCommentResource(Resource):
         blog_news.Base.session.commit()
         return make_response(jsonify({"message": "Comment deleted", "code": 200}), 200,)
 
-
-
+    @classmethod
+    def patch(cls, story_id, comment_id):
+        """
+        Getting PATCH requests on the '/api/blognews/<story_id>/comments/<comment_id>' 
+        endpoint, and updating a blognews story comment by id
+        """
+        try:
+            story_id = {'story_id': story_id}
+            incoming_story_id = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        try:
+            comment_id = {'comment_id': comment_id}
+            incoming_comment_id = comment_id_schema.load(comment_id)
+        except ValidationError as err:
+            return err.messages, 400    
+        if not BlogNewsStory.query.filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).first():
+            return make_response(jsonify({"message": "Story not found", "code": 404}), 404)
+        if not BlogNewsStoryComment.query.filter(
+            BlogNewsStoryComment.id == incoming_comment_id['comment_id']
+        ).first():
+            return make_response(jsonify({"message": "Comment not found", "code": 404}), 404)
+        try:
+            incoming_comment = add_comment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        BlogNewsStoryComment.query.filter(
+            BlogNewsStoryComment.id == incoming_comment_id['comment_id']
+        ).update(
+            {
+                "text": incoming_comment['text'],
+                "time": int(time.time())
+            }
+        )
+        blog_news.Base.session.commit()
+        return make_response(jsonify({"message": "Comment updated", "code": 200}), 200,)
 
 # def post(cls, story_id):
 #         """
