@@ -51,4 +51,4 @@ api.add_resource(BlogNewsStoriesResource, "/blognews/", methods=["GET", "POST"])
 api.add_resource(
     BlogNewsStoryResource, "/blognews/<int:story_id>", methods=["GET", "DELETE", "PATCH"]
 )
-api.add_resource(BlogNewsStoryCommentsResource, "/blognews/<int:story_id>/comments", methods=["GET"])
+api.add_resource(BlogNewsStoryCommentsResource, "/blognews/<int:story_id>/comments", methods=["GET", "POST"])

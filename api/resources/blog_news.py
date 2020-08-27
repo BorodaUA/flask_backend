@@ -39,6 +39,27 @@ add_story_schema = BlogNewsStorySchema(
     'origin',
     ]
 )
+add_comment_schema = BlogNewsStorySchema(
+    exclude=[
+    'id',
+    'deleted',
+    'type',
+    # 'by',
+    'time',
+    # 'text',
+    'dead',
+    'parent',
+    'poll',
+    'kids',
+    'url',
+    'score',
+    'title',
+    'parts',
+    'descendants',
+    'comments',
+    'origin',
+    ]
+)
 # comments_schema = Comments_Schema(many=True)
 # add_coment_schema = Add_Comment_Schema()
 
@@ -151,7 +172,7 @@ class BlogNewsStoriesResource(Resource):
         saving new story to the database.
         """
         try:
-            story = story_schema.load(request.get_json())
+            story = add_story_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
         full_story = {
@@ -160,6 +181,7 @@ class BlogNewsStoriesResource(Resource):
             "type": "story",
             "by": story["by"],
             "text": story["text"],
+            "url": story["url"],
             "dead": False,
             "parent": None,
             "poll": None,
@@ -167,7 +189,7 @@ class BlogNewsStoriesResource(Resource):
             "title": story["title"],
             "parts": [],
             "descendants": None,
-            "origin": "blogstory",
+            "origin": "my_blog",
         }
         data = BlogNewsStory(**full_story)
         blog_news.Base.session.add(data)
@@ -281,9 +303,42 @@ class BlogNewsStoryCommentsResource(Resource):
             .order_by(desc(BlogNewsStoryComment.time))
             .all()
         )
-        return jsonify(story_schema.dump(comments))
+        return jsonify(stories_schema.dump(comments))
 
-#     def post(cls, story_id):
+    @classmethod
+    def post(cls, story_id):
+        """
+        Getting POST requests on the '/api/blognews/<story_id>/comments' 
+        endpoint, and adding a comment to blognews story
+        """
+        try:
+            story_id = {'story_id': story_id}
+            incoming_story_id = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        if not BlogNewsStory.query.filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).first():
+            return make_response(jsonify({"message": "Story not found", "code": 404}), 404)
+        try:
+            incoming_comment = add_comment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        incoming_comment["dead"] = False
+        incoming_comment["deleted"] = False
+        incoming_comment["descendants"] = 0
+        incoming_comment["kids"] = []
+        incoming_comment["origin"] = 'my_blog'
+        incoming_comment['parent'] = incoming_story_id["story_id"]
+        incoming_comment["time"] = int(time.time())
+        incoming_comment["type"] = 'comment'
+        comment_data = BlogNewsStoryComment(**incoming_comment)
+        blog_news.Base.session.add(comment_data)
+        blog_news.Base.session.commit()
+        return make_response(jsonify({"message": "Comment added", "code": 201}), 201,)
+
+
+# def post(cls, story_id):
 #         """
 #         Getting POST requests on the '/api/blog_news/stories/<story_id>/comments' 
 #         endpoint, and adding hacker_news top_stories`s story`s comment
