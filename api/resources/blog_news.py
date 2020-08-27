@@ -18,6 +18,27 @@ news_pagination_schema = NewsPaginationSchema()
 story_id_schema = StoryIdSchema()
 story_schema = BlogNewsStorySchema()
 stories_schema = BlogNewsStorySchema(many=True)
+add_story_schema = BlogNewsStorySchema(
+    exclude=[
+    'id',
+    'deleted',
+    'type',
+    # 'by',
+    'time',
+    # 'text',
+    'dead',
+    'parent',
+    'poll',
+    'kids',
+    # 'url',
+    'score',
+    # 'title',
+    'parts',
+    'descendants',
+    'comments',
+    'origin',
+    ]
+)
 # comments_schema = Comments_Schema(many=True)
 # add_coment_schema = Add_Comment_Schema()
 
@@ -196,6 +217,45 @@ class BlogNewsStoryResource(Resource):
         blog_news.Base.session.delete(story)
         blog_news.Base.session.commit()
         return make_response(jsonify({"message": "Story deleted", "code": 200}), 200,)
+
+    @classmethod
+    def patch(self, story_id):
+        """
+        Getting PATCH requests on the '/api/blog_news/<story_id>' 
+        endpoint, and updating a blognews story
+        """
+        try:
+            story_id = {'story_id': story_id}
+            incoming_story_id = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        if not BlogNewsStory.query.filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).first():
+            return make_response(jsonify({"message": "Story not found", "code": 404}), 404)
+        try:
+            story = add_story_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        BlogNewsStory.query.filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).update(
+            {
+                "text": story["text"],
+                "url": story["url"],
+                "title": story["title"],
+                "time": int(time.time()),
+            }
+        )
+        blog_news.Base.session.commit()
+        return make_response(jsonify({"message": "Story succesfully updated", "code": 200}), 200)
+
+
+
+
+
+
+
 
 
 # class BlogNews_Stories_Comments_Resource(Resource):

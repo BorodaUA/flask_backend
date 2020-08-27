@@ -48,5 +48,5 @@ api.add_resource(
 ###
 api.add_resource(BlogNewsStoriesResource, "/blognews/", methods=["GET", "POST"])
 api.add_resource(
-    BlogNewsStoryResource, "/blognews/<int:story_id>", methods=["GET", "DELETE"]
+    BlogNewsStoryResource, "/blognews/<int:story_id>", methods=["GET", "DELETE", "PATCH"]
 )
