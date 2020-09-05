@@ -4,10 +4,8 @@ from sqlalchemy import (
     Integer,
     String,
     JSON,
-    DateTime,
     Boolean,
     ForeignKey,
-    MetaData,
 )
 from sqlalchemy.orm import relationship
 
@@ -20,16 +18,17 @@ class BlogNewsStory(Base):
     #
     __tablename__ = "blog_news_story"
     #
-    item_id = Column(Integer, primary_key=True, autoincrement=True)
     #
+    id = Column(Integer, primary_key=True, nullable=False)
     deleted = Column(Boolean)
-    item_type = Column(String)
+    type = Column(String)
     by = Column(String)
-    time = Column(DateTime)
+    time = Column(Integer)
     text = Column(String)
     dead = Column(Boolean)
     parent = Column(Integer)
     poll = Column(Integer)
+    kids = Column(JSON)
     url = Column(String)
     score = Column(Integer)
     title = Column(String)
@@ -40,8 +39,9 @@ class BlogNewsStory(Base):
         "BlogNewsStoryComment",
         backref="blog_news_story",
         order_by="desc(BlogNewsStoryComment.id)",
+        cascade="all,delete"
     )
-    origin = Column(String(128), nullable=False)
+    origin = Column(String)
 
 
 class BlogNewsStoryComment(Base):
@@ -50,16 +50,19 @@ class BlogNewsStoryComment(Base):
     #
     __bind_key__ = "flask_backend"
     #
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    #
-    parse_dt = Column(DateTime)
-    #
-    by = Column(String)
+    id = Column(Integer, primary_key=True, nullable=False)
     deleted = Column(Boolean)
-    comment_id = Column(Integer)
-    kids = Column(JSON)
-    parent = Column(Integer, ForeignKey("blog_news_story.item_id"))
-    text = Column(String)
+    type = Column(String)
+    by = Column(String)
     time = Column(Integer)
-    comment_type = Column(String)
-    origin = Column(String(128), nullable=False)
+    text = Column(String)
+    dead = Column(Boolean)
+    parent = Column(Integer, ForeignKey("blog_news_story.id"))
+    poll = Column(Integer)
+    kids = Column(JSON)
+    url = Column(String)
+    score = Column(Integer)
+    title = Column(String)
+    parts = Column(JSON)
+    descendants = Column(Integer)
+    origin = Column(String)

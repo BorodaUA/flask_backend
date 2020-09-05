@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response, jsonify
+from flask import request, jsonify, make_response
 from flask_restful import Resource
 from api.models.user import UserModel
 from api.schemas.user import UserSchema
@@ -29,16 +29,22 @@ class UserRegistration(Resource):
             return err.messages, 400
         if UserModel.query.filter_by(username=user["username"]).first():
             return make_response(
-                jsonify({"message": "User with this username already exist"}), 400
+                jsonify(
+                    {
+                        "message": "User with this username already exist"
+                    }
+                ), 400
             )
-        if UserModel.query.filter_by(email_address=user["email_address"]).first():
+        if UserModel.query.filter_by(
+            email_address=user["email_address"]
+        ).first():
             return make_response(
                 jsonify({"message": "User with this email already exist"}), 400
             )
         user["password"] = argon2.hash(user["password"])
         ###
         flag = True
-        while flag == True:
+        while flag:
             try:
                 user["user_uuid"] = str(uuid4())
                 user["origin"] = "my_blog"
@@ -47,7 +53,10 @@ class UserRegistration(Resource):
                 return make_response(
                     jsonify(
                         {
-                            "message": f"Registration succesfull {user['username']}",
+                            "message": (
+                                f"Registration succesfull"
+                                f"{user['username']}"
+                            ),
                             "username": user["username"],
                             "user_uuid": user["user_uuid"],
                             "origin": user["origin"],
@@ -73,7 +82,9 @@ class UserLogin(Resource):
         except ValidationError as err:
             return err.messages, 400
         ###
-        db_user = UserModel.query.filter_by(username=incoming_user["username"]).first()
+        db_user = UserModel.query.filter_by(
+            username=incoming_user["username"]
+        ).first()
         db_email_address = UserModel.query.filter_by(
             email_address=incoming_user["email_address"]
         ).first()
@@ -92,14 +103,20 @@ class UserLogin(Resource):
                     200,
                 )
             return make_response(
-                jsonify({"message": f"Username or password Incorect!"}), 400
+                jsonify({"message": "Username or password Incorect!"}), 400
             )
         elif db_email_address:
-            if argon2.verify(incoming_user["password"], db_email_address.password):
+            if argon2.verify(
+                incoming_user["password"],
+                db_email_address.password
+            ):
                 return make_response(
                     jsonify(
                         {
-                            "message": f"Login succesfull {db_email_address.email_address}",
+                            "message": (
+                                f"Login succesfull"
+                                f"{db_email_address.email_address}"
+                            ),
                             "user_uuid": db_email_address.user_uuid,
                             "username": db_email_address.username,
                             "origin": db_user.origin,
@@ -108,11 +125,19 @@ class UserLogin(Resource):
                     200,
                 )
             return make_response(
-                jsonify({"message": f"Email address or password Incorect!"}), 400
+                jsonify(
+                    {
+                        "message": "Email address or password Incorect!"
+                    }
+                ), 400
             )
         else:
             return make_response(
-                jsonify({"message": f"Username or Email address not found."}), 400
+                jsonify(
+                    {
+                        "message": "Username or Email address not found."
+                    }
+                ), 400
             )
 
 
