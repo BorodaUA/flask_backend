@@ -189,29 +189,34 @@ class HackerNewsTopStoryResource(Resource):
         return make_response(jsonify(top_story_schema.dump(story)), 200)
 
 
-class HackerNews_TopStories_Story_Comments_Resource(Resource):
+class HackerNewsTopStoryCommentsResource(Resource):
     @classmethod
     def get(cls, story_id):
         """
-        Getting GET requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
-        endpoint, and returning a list of hacker_news top_stories`s story`s comments
+        Getting GET requests on the
+        '/api/hackernews/topstories/<story_id>/comments' endpoint
+        and returning a list of hackernews topstories story`s comments
         """
         try:
-            incoming_story_id = story_id_schema.load(request.get_json())
+            story_id = {"story_id": story_id}
+            incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
         if not HackerNewsTopStory.query.filter(
             HackerNewsTopStory.id == incoming_story_id["story_id"]
         ).first():
-            return {"message": "Comments not found"}, 400
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
         comments = (
             HackerNewsTopStoryComment.query.filter(
-                HackerNewsTopStoryComment.parent == incoming_story_id["story_id"]
+                HackerNewsTopStoryComment.parent ==
+                incoming_story_id["story_id"]
             )
             .order_by(desc(HackerNewsTopStoryComment.parsed_time))
             .all()
         )
-        return jsonify(comments_schema.dump(comments))
+        return make_response(jsonify(comments_schema.dump(comments)), 200)
 
     def post(cls, story_id):
         """

@@ -4,7 +4,7 @@ from .resources.user import UserRegistration, UserList, UserLogin
 from .resources.hacker_news import (
     HackerNewsTopStoriesResourse,
     HackerNewsTopStoryResource,
-    HackerNews_TopStories_Story_Comments_Resource,
+    HackerNewsTopStoryCommentsResource,
     HackerNews_NewStories_Resource,
     HackerNews_NewStories_Story_Resource,
 )
@@ -40,8 +40,9 @@ api.add_resource(
     methods=["GET"]
 )
 api.add_resource(
-    HackerNews_TopStories_Story_Comments_Resource,
-    "/hacker_news/top_stories/stories/<int:story_id>/comments",
+    HackerNewsTopStoryCommentsResource,
+    "/hackernews/topstories/<int:story_id>/comments",
+    methods=["GET"]
 )
 api.add_resource(
     HackerNews_NewStories_Resource, "/hacker_news/new_stories/<int:page_number>"
