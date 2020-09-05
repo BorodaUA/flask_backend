@@ -7,7 +7,6 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     ForeignKey,
-    MetaData,
 )
 from sqlalchemy.orm import relationship
 

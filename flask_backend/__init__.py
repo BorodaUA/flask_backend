@@ -2,7 +2,7 @@ from flask import Flask
 from sqlalchemy.orm import scoped_session, sessionmaker
 from db.db import db
 from config import config
-from api.models import user, hn_db, blog_news
+from api.models import user, hacker_news, blog_news
 
 
 def create_app(config_name):
@@ -24,14 +24,14 @@ def create_app(config_name):
             )
             user.Base.query = user.Base.session.query_property()
             #
-            hn_db.Base.session = scoped_session(
+            hacker_news.Base.session = scoped_session(
                 sessionmaker(
                     autocommit=False,
                     autoflush=False,
                     bind=db.get_engine(bind="hacker_news"),
                 )
             )
-            hn_db.Base.query = hn_db.Base.session.query_property()
+            hacker_news.Base.query = hacker_news.Base.session.query_property()
             #
             blog_news.Base.session = scoped_session(
                 sessionmaker(

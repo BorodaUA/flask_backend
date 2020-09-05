@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, validate
 
 
 class PaginationSchema(Schema):
-    page_number = fields.Int(required=True)
+    pagenumber = fields.Int(required=True)
 
 
 class StorySchema(Schema):
