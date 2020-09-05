@@ -1,5 +1,5 @@
 from flask import Blueprint, make_response, jsonify
-from flask_restful import Api, Resource
+from flask_restful import Api
 from .resources.user import UserRegistration, UserList, UserLogin
 from .resources.hacker_news import (
     HackerNews_TopStories_Resourse,
@@ -48,9 +48,23 @@ api.add_resource(
     "/hacker_news/new_stories/stories/<int:story_id>",
 )
 ###
-api.add_resource(BlogNewsStoriesResource, "/blognews/", methods=["GET", "POST"])
 api.add_resource(
-    BlogNewsStoryResource, "/blognews/<int:story_id>", methods=["GET", "DELETE", "PATCH"]
+    BlogNewsStoriesResource,
+    "/blognews/",
+    methods=["GET", "POST"]
 )
-api.add_resource(BlogNewsStoryCommentsResource, "/blognews/<int:story_id>/comments", methods=["GET", "POST"])
-api.add_resource(BlogNewsStoryCommentResource, "/blognews/<int:story_id>/comments/<int:comment_id>", methods=["GET", "DELETE", "PATCH"],)
+api.add_resource(
+    BlogNewsStoryResource,
+    "/blognews/<int:story_id>",
+    methods=["GET", "DELETE", "PATCH"]
+)
+api.add_resource(
+    BlogNewsStoryCommentsResource,
+    "/blognews/<int:story_id>/comments",
+    methods=["GET", "POST"]
+)
+api.add_resource(
+    BlogNewsStoryCommentResource,
+    "/blognews/<int:story_id>/comments/<int:comment_id>",
+    methods=["GET", "DELETE", "PATCH"]
+)

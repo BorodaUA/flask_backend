@@ -4,10 +4,8 @@ from sqlalchemy import (
     Integer,
     String,
     JSON,
-    DateTime,
     Boolean,
     ForeignKey,
-    MetaData,
 )
 from sqlalchemy.orm import relationship
 
@@ -68,4 +66,3 @@ class BlogNewsStoryComment(Base):
     parts = Column(JSON)
     descendants = Column(Integer)
     origin = Column(String)
-   
