@@ -8,6 +8,7 @@ from api.models.hacker_news import (
 )
 from api.schemas.hacker_news import (
     HackerNewsTopStorySchema,
+    CommentIdSchema,
     HackerNews_NewStories_Schema,
     PaginationSchema,
     StorySchema,
@@ -22,7 +23,7 @@ from datetime import datetime
 
 from api.models import hacker_news
 
-
+comment_id_schema = CommentIdSchema()
 top_stories_schema = HackerNewsTopStorySchema(
     many=True,
     # exclude=[
@@ -54,6 +55,28 @@ top_story_schema = HackerNewsTopStorySchema(
     #     "parts",
     #     "descendants",
     # ],
+)
+add_comment_schema = HackerNewsTopStorySchema(
+    exclude=[
+        "id",
+        "hn_id",
+        "deleted",
+        "type",
+        # 'by',
+        "time",
+        # 'text',
+        "dead",
+        "parent",
+        "poll",
+        "kids",
+        # 'url',
+        "score",
+        # 'title',
+        "parts",
+        "descendants",
+        "comments",
+        "origin",
+    ],
 )
 #
 new_stories_schema = HackerNews_NewStories_Schema(
@@ -262,43 +285,59 @@ class HackerNewsTopStoryCommentsResource(Resource):
             }
         ), 201,)
 
-    def put(cls, story_id):
+
+class HackerNewsTopStoryCommentResource(Resource):
+    @classmethod
+    def patch(cls, story_id, comment_id):
         """
-        Getting PUT requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
-        endpoint, and updating hacker_news top_stories`s story`s comment
+        Getting PATCH requests on the
+        '/api/hackernews/topstories/<story_id>/comments/<comment_id>' endpoint
+        and updating hackernews topstories story`s comment
         """
         try:
-            incoming_comment = add_coment_schema.load(request.get_json())
+            story_id = {"story_id": story_id}
+            incoming_story = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        try:
+            comment_id = {"comment_id": comment_id}
+            incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
         if not HackerNewsTopStory.query.filter(
-            HackerNewsTopStory.id == incoming_comment["parent"]
+            HackerNewsTopStory.id == incoming_story["story_id"]
         ).first():
-            return make_response(jsonify({"message": "Story not found"}), 400)
-        if HackerNewsTopStoryComment.query.filter(
-            HackerNewsTopStoryComment.id
-            == incoming_comment["existed_comment_id"]
-        ).first():
-            HackerNewsTopStoryComment.query.filter(
-                HackerNewsTopStoryComment.id
-                == incoming_comment["existed_comment_id"]
-            ).update(
-                {
-                    "parsed_time": incoming_comment["parsed_time"],
-                    "by": incoming_comment["by"],
-                    "deleted": incoming_comment["deleted"],
-                    "id": int(incoming_comment["existed_comment_id"]),
-                    "kids": incoming_comment["kids"],
-                    "parent": incoming_comment["parent"],
-                    "text": incoming_comment["text"],
-                    "time": incoming_comment["time"],
-                    "type": incoming_comment["type"],
-                }
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
             )
-            hn_db.Base.session.commit()
-            return make_response(jsonify({"message": "Comment updated",}), 201,)
-        else:
-            return make_response(jsonify({"message": "Comment not found",}), 400,)
+        if not HackerNewsTopStoryComment.query.filter(
+            HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
+        ).first():
+            return make_response(
+                jsonify({"message": "Comment not found", "code": 404}), 404
+            )
+        try:
+            incoming_comment = add_comment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        HackerNewsTopStoryComment.query.filter(
+            HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
+        ).update(
+            {
+                "parsed_time": datetime.strftime(
+                    datetime.now(),
+                    "%Y-%m-%d %H:%M:%S.%f"
+                )[:-3],
+                "text": incoming_comment["text"]
+            }
+        )
+        hacker_news.Base.session.commit()
+        return make_response(jsonify(
+            {
+                "message": "Comment updated",
+                "code": 200
+            }
+        ), 200,)
 
     def delete(cls, story_id):
         """

@@ -9,6 +9,10 @@ class StorySchema(Schema):
     story_id = fields.Int(required=True)
 
 
+class CommentIdSchema(Schema):
+    comment_id = fields.Int(required=True)
+
+
 class HackerNewsCommentSchema(Schema):
     id = fields.Str()
     deleted = fields.Bool()
@@ -46,6 +50,7 @@ class Add_Comment_Schema(Schema):
 
 class HackerNewsTopStorySchema(Schema):
     id = fields.Str()
+    hn_id = fields.Int()
     deleted = fields.Bool()
     type = fields.Str()
     by = fields.Str()

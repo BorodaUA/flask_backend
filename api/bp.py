@@ -5,6 +5,7 @@ from .resources.hacker_news import (
     HackerNewsTopStoriesResourse,
     HackerNewsTopStoryResource,
     HackerNewsTopStoryCommentsResource,
+    HackerNewsTopStoryCommentResource,
     HackerNews_NewStories_Resource,
     HackerNews_NewStories_Story_Resource,
 )
@@ -43,6 +44,11 @@ api.add_resource(
     HackerNewsTopStoryCommentsResource,
     "/hackernews/topstories/<int:story_id>/comments",
     methods=["GET", "POST"]
+)
+api.add_resource(
+    HackerNewsTopStoryCommentResource,
+    "/hackernews/topstories/<int:story_id>/comments/<int:comment_id>",
+    methods=["PATCH"]
 )
 api.add_resource(
     HackerNews_NewStories_Resource, "/hacker_news/new_stories/<int:page_number>"
