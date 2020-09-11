@@ -339,31 +339,49 @@ class HackerNewsTopStoryCommentResource(Resource):
             }
         ), 200,)
 
-    def delete(cls, story_id):
+    @classmethod
+    def delete(cls, story_id, comment_id):
         """
-        Getting DELETE requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
-        endpoint, and deleting hacker_news top_stories`s story`s comment
+        Getting DELETE requests on the
+        '/api/hackernews/topstories/<story_id>/comments/<comment_id>' endpoint
+        and deleting hackernews topstories story`s comment
         """
         try:
-            incoming_comment = add_coment_schema.load(request.get_json())
+            story_id = {"story_id": story_id}
+            incoming_story = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        try:
+            comment_id = {"comment_id": comment_id}
+            incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
         if not HackerNewsTopStory.query.filter(
-            HackerNewsTopStory.id == incoming_comment["parent"]
+            HackerNewsTopStory.id == incoming_story["story_id"]
         ).first():
-            return make_response(jsonify({"message": "Story not found"}), 400)
-        if HackerNewsTopStoryComment.query.filter(
-            HackerNewsTopStoryComment.id
-            == incoming_comment["existed_comment_id"]
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
+        if not HackerNewsTopStoryComment.query.filter(
+            HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
         ).first():
-            HackerNewsTopStoryComment.query.filter(
-                HackerNewsTopStoryComment.id
-                == incoming_comment["existed_comment_id"]
-            ).delete()
-            hn_db.Base.session.commit()
-            return make_response(jsonify({"message": "Comment deleted",}), 201,)
-        else:
-            return make_response(jsonify({"message": "Comment not found",}), 400,)
+            return make_response(
+                jsonify({"message": "Comment not found", "code": 404}), 404
+            )
+        try:
+            incoming_comment = add_comment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        HackerNewsTopStoryComment.query.filter(
+            HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
+        ).delete()
+        hacker_news.Base.session.commit()
+        return make_response(jsonify(
+            {
+                "message": "Comment deleted",
+                "code": 200
+            }
+        ), 200,)
 
 
 class HackerNews_NewStories_Resource(Resource):

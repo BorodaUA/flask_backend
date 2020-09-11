@@ -48,7 +48,7 @@ api.add_resource(
 api.add_resource(
     HackerNewsTopStoryCommentResource,
     "/hackernews/topstories/<int:story_id>/comments/<int:comment_id>",
-    methods=["PATCH"]
+    methods=["PATCH", "DELETE"]
 )
 api.add_resource(
     HackerNews_NewStories_Resource, "/hacker_news/new_stories/<int:page_number>"
