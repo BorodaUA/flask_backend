@@ -17,6 +17,8 @@ from api.schemas.hacker_news import (
 from sqlalchemy import desc
 from sqlalchemy_pagination import paginate
 from marshmallow import ValidationError
+import time
+from datetime import datetime
 
 from api.models import hacker_news
 
@@ -220,23 +222,45 @@ class HackerNewsTopStoryCommentsResource(Resource):
 
     def post(cls, story_id):
         """
-        Getting POST requests on the '/api/hacker_news/top_stories/story/<story_id>/comments' 
-        endpoint, and adding hacker_news top_stories`s story`s comment
+        Getting POST requests on the
+        '/api/hackernews/topstories/<story_id>/comments'
+        endpoint, and adding a comment to hackernews topstories`s story
         """
+        try:
+            story_id = {"story_id": story_id}
+            incoming_story = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        if not HackerNewsTopStory.query.filter(
+            HackerNewsTopStory.id == incoming_story["story_id"]
+        ).first():
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
         try:
             incoming_comment = add_coment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNewsTopStory.query.filter(
-            HackerNewsTopStory.id == incoming_comment["parent"]
-        ).first():
-            return make_response(jsonify({"message": "Story not found"}), 400)
-        incoming_comment.pop("existed_comment_id")
-        incoming_comment.pop("existed_comment_text")
+        incoming_comment["dead"] = False
+        incoming_comment["deleted"] = False
+        incoming_comment["descendants"] = 0
+        incoming_comment["kids"] = []
+        incoming_comment["origin"] = "my_blog"
+        incoming_comment["parent"] = incoming_story["story_id"]
+        incoming_comment["time"] = int(time.time())
+        incoming_comment["type"] = "comment"
+        incoming_comment["parsed_time"] = datetime.strftime(
+                                datetime.now(), "%Y-%m-%d %H:%M:%S.%f"
+                            )[:-3]
         comment_data = HackerNewsTopStoryComment(**incoming_comment)
-        hn_db.Base.session.add(comment_data)
-        hn_db.Base.session.commit()
-        return make_response(jsonify({"message": "Comment added"}), 201,)
+        hacker_news.Base.session.add(comment_data)
+        hacker_news.Base.session.commit()
+        return make_response(jsonify(
+            {
+                "message": "Comment added",
+                "code": 201
+            }
+        ), 201,)
 
     def put(cls, story_id):
         """

@@ -42,7 +42,7 @@ api.add_resource(
 api.add_resource(
     HackerNewsTopStoryCommentsResource,
     "/hackernews/topstories/<int:story_id>/comments",
-    methods=["GET"]
+    methods=["GET", "POST"]
 )
 api.add_resource(
     HackerNews_NewStories_Resource, "/hacker_news/new_stories/<int:page_number>"
