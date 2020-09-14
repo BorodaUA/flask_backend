@@ -6,7 +6,7 @@ from .resources.hacker_news import (
     HackerNewsTopStoryResource,
     HackerNewsTopStoryCommentsResource,
     HackerNewsTopStoryCommentResource,
-    HackerNews_NewStories_Resource,
+    HackerNewsNewStoriesResource,
     HackerNews_NewStories_Story_Resource,
 )
 from .resources.blog_news import (
@@ -51,7 +51,9 @@ api.add_resource(
     methods=["PATCH", "DELETE"]
 )
 api.add_resource(
-    HackerNews_NewStories_Resource, "/hacker_news/new_stories/<int:page_number>"
+    HackerNewsNewStoriesResource,
+    "/hackernews/newstories/",
+    methods=["GET"]
 )
 api.add_resource(
     HackerNews_NewStories_Story_Resource,

@@ -101,6 +101,7 @@ class HackerNewsNewStoryComment(Base):
     __tablename__ = "hacker_news_new_story_comment"
     #
     id = Column(Integer, primary_key=True, nullable=False)
+    hn_id = Column(Integer)
     deleted = Column(Boolean)
     type = Column(String)
     by = Column(String)

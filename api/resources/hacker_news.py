@@ -384,34 +384,50 @@ class HackerNewsTopStoryCommentResource(Resource):
         ), 200,)
 
 
-class HackerNews_NewStories_Resource(Resource):
+class HackerNewsNewStoriesResource(Resource):
     @classmethod
-    def get(cls, page_number):
+    def get(cls):
         """
-        Getting GET requests on the '/api/hacker_news/new_stories/<page_number>' 
-        endpoint, and returning a page with 30 hacker_news new_stories in database.
+        Getting GET requests on the
+        '/api/hackernews/newstories/?pagenumber=N'
+        endpoint, and returning a page with 30 hacker_news
+        new_stories from database.
         """
         try:
-            incoming_pagination = news_pagination.load(request.get_json())
+            pagenumber = {"pagenumber": request.args.get("pagenumber")}
+            incoming_pagination = news_pagination.load(pagenumber)
         except ValidationError as err:
             return err.messages, 400
-
-        if not HackerNewsNewStory.query.all():
-            return (
-                {"message": "HackerNewsTopStoryComment new_stories in this table"},
+        if incoming_pagination["pagenumber"] <= 0:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "pagenumber must be greater then 0",
+                        "code": 400
+                    }
+                ),
                 400,
             )
-        if incoming_pagination["page_number"] <= 0:
-            return {"message": "pagination must be >= 1"}, 400
+        if not HackerNewsNewStory.query.all():
+            return make_response(
+                jsonify(
+                    {
+                        "message": "No hackernews newstories found",
+                        "code": 404
+                    }
+                ), 404,
+            )
         page = paginate(
-            HackerNewsNewStory.query.order_by(desc(HackerNewsNewStory.parsed_time))
+            HackerNewsNewStory.query.order_by(
+                desc(HackerNewsNewStory.parsed_time)
+            )
             .limit(500)
             .from_self(),
-            incoming_pagination["page_number"],
+            incoming_pagination["pagenumber"],
             30,
         )
         result_page = {
-            "current_page": incoming_pagination["page_number"],
+            "current_page": incoming_pagination["pagenumber"],
             "has_next": page.has_next,
             "has_previous": page.has_previous,
             "items": new_stories_schema.dump(page.items),
@@ -420,8 +436,17 @@ class HackerNews_NewStories_Resource(Resource):
             "pages": page.pages,
             "total": page.total,
         }
-        if incoming_pagination["page_number"] > result_page["pages"]:
-            return {"message": "Pagination page not found"}, 400
+        if incoming_pagination["pagenumber"] > result_page["pages"]:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "Pagination page not found",
+                        "code": 404
+                    }
+                ), 404,
+            )
+        hacker_news.Base.session.commit()
+        hacker_news.Base.session.close()
         return jsonify(result_page)
 
 
