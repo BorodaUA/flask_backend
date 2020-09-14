@@ -450,21 +450,25 @@ class HackerNewsNewStoriesResource(Resource):
         return jsonify(result_page)
 
 
-class HackerNews_NewStories_Story_Resource(Resource):
+class HackerNewsNewStoryResource(Resource):
     @classmethod
     def get(cls, story_id):
         """
-        Getting GET requests on the '/api/hacker_news/new_stories/story/<story_id>' 
+        Getting GET requests on the
+        '/api/hackernews/newstories/<story_id>'
         endpoint, and returning a hacker_news new_stories`s story with comments
         """
         try:
-            incoming_story_id = story_id_schema.load(request.get_json())
+            story_id = {"story_id": story_id}
+            incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
         if not HackerNewsNewStory.query.filter(
             HackerNewsNewStory.id == incoming_story_id["story_id"]
         ).first():
-            return {"message": "Story not found"}, 400
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
         story = (
             HackerNewsNewStory.query.filter(
                 HackerNewsNewStory.id == incoming_story_id["story_id"],
@@ -472,5 +476,4 @@ class HackerNews_NewStories_Story_Resource(Resource):
             .order_by(HackerNewsNewStory.parsed_time)
             .first()
         )
-
-        return jsonify(new_story_schema.dump(story))
+        return make_response(jsonify(new_story_schema.dump(story)), 200)
