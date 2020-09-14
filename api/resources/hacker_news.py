@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response, jsonify
+from flask import request, jsonify, make_response
 from flask_restful import Resource
 from api.models.hacker_news import (
     HackerNewsTopStory,
@@ -477,3 +477,33 @@ class HackerNewsNewStoryResource(Resource):
             .first()
         )
         return make_response(jsonify(new_story_schema.dump(story)), 200)
+
+
+class HackerNewsNewStoryCommentsResource(Resource):
+    @classmethod
+    def get(cls, story_id):
+        """
+        Getting GET requests on the
+        '/api/hackernews/newstories/<story_id>/comments' endpoint
+        and returning a list of hackernews newstories story`s comments
+        """
+        try:
+            story_id = {"story_id": story_id}
+            incoming_story_id = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        if not HackerNewsNewStory.query.filter(
+            HackerNewsNewStory.id == incoming_story_id["story_id"]
+        ).first():
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
+        comments = (
+            HackerNewsNewStoryComment.query.filter(
+                HackerNewsNewStoryComment.parent ==
+                incoming_story_id["story_id"]
+            )
+            .order_by(desc(HackerNewsNewStoryComment.parsed_time))
+            .all()
+        )
+        return make_response(jsonify(comments_schema.dump(comments)), 200)
