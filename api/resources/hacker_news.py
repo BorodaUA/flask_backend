@@ -549,3 +549,57 @@ class HackerNewsNewStoryCommentsResource(Resource):
                 "code": 201
             }
         ), 201,)
+
+
+class HackerNewsNewStoryCommentResource(Resource):
+    @classmethod
+    def patch(cls, story_id, comment_id):
+        """
+        Getting PATCH requests on the
+        '/api/hackernews/newstories/<story_id>/comments/<comment_id>' endpoint
+        and updating hackernews newstories story`s comment
+        """
+        try:
+            story_id = {"story_id": story_id}
+            incoming_story = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        try:
+            comment_id = {"comment_id": comment_id}
+            incoming_comment_id = comment_id_schema.load(comment_id)
+        except ValidationError as err:
+            return err.messages, 400
+        if not HackerNewsNewStory.query.filter(
+            HackerNewsNewStory.id == incoming_story["story_id"]
+        ).first():
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
+        if not HackerNewsNewStoryComment.query.filter(
+            HackerNewsNewStoryComment.id == incoming_comment_id["comment_id"]
+        ).first():
+            return make_response(
+                jsonify({"message": "Comment not found", "code": 404}), 404
+            )
+        try:
+            incoming_comment = add_comment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        HackerNewsNewStoryComment.query.filter(
+            HackerNewsNewStoryComment.id == incoming_comment_id["comment_id"]
+        ).update(
+            {
+                "parsed_time": datetime.strftime(
+                    datetime.now(),
+                    "%Y-%m-%d %H:%M:%S.%f"
+                )[:-3],
+                "text": incoming_comment["text"]
+            }
+        )
+        hacker_news.Base.session.commit()
+        return make_response(jsonify(
+            {
+                "message": "Comment updated",
+                "code": 200
+            }
+        ), 200,)
