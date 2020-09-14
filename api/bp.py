@@ -70,7 +70,7 @@ api.add_resource(
 api.add_resource(
     HackerNewsNewStoryCommentResource,
     "/hackernews/newstories/<int:story_id>/comments/<int:comment_id>",
-    methods=["PATCH"]
+    methods=["PATCH", "DELETE"]
 )
 ###
 api.add_resource(
