@@ -8,7 +8,7 @@ from .resources.hacker_news import (
     HackerNewsTopStoryCommentResource,
     HackerNewsNewStoriesResource,
     HackerNewsNewStoryResource,
-    HackerNewsNewStoryCommentsResource
+    HackerNewsNewStoryCommentsResource,
 )
 from .resources.blog_news import (
     BlogNewsStoriesResource,
@@ -64,7 +64,7 @@ api.add_resource(
 api.add_resource(
     HackerNewsNewStoryCommentsResource,
     "/hackernews/newstories/<int:story_id>/comments",
-    methods=["GET"]
+    methods=["GET", "POST"]
 )
 ###
 api.add_resource(

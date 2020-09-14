@@ -507,3 +507,45 @@ class HackerNewsNewStoryCommentsResource(Resource):
             .all()
         )
         return make_response(jsonify(comments_schema.dump(comments)), 200)
+
+    def post(cls, story_id):
+        """
+        Getting POST requests on the
+        '/api/hackernews/newstories/<story_id>/comments'
+        endpoint, and adding a comment to hackernews newstories`s story
+        """
+        try:
+            story_id = {"story_id": story_id}
+            incoming_story = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        if not HackerNewsNewStory.query.filter(
+            HackerNewsNewStory.id == incoming_story["story_id"]
+        ).first():
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
+        try:
+            incoming_comment = add_coment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        incoming_comment["dead"] = False
+        incoming_comment["deleted"] = False
+        incoming_comment["descendants"] = 0
+        incoming_comment["kids"] = []
+        incoming_comment["origin"] = "my_blog"
+        incoming_comment["parent"] = incoming_story["story_id"]
+        incoming_comment["time"] = int(time.time())
+        incoming_comment["type"] = "comment"
+        incoming_comment["parsed_time"] = datetime.strftime(
+                                datetime.now(), "%Y-%m-%d %H:%M:%S.%f"
+                            )[:-3]
+        comment_data = HackerNewsNewStoryComment(**incoming_comment)
+        hacker_news.Base.session.add(comment_data)
+        hacker_news.Base.session.commit()
+        return make_response(jsonify(
+            {
+                "message": "Comment added",
+                "code": 201
+            }
+        ), 201,)
