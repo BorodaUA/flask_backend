@@ -18,6 +18,7 @@ class HackerNewsTopStory(Base):
     __tablename__ = "hacker_news_top_story"
     #
     id = Column(Integer, primary_key=True, nullable=False)
+    hn_id = Column(Integer, unique=True)
     deleted = Column(Boolean)
     type = Column(String)
     by = Column(String)
@@ -55,7 +56,7 @@ class HackerNewsTopStoryComment(Base):
     time = Column(Integer)
     text = Column(String)
     dead = Column(Boolean)
-    parent = Column(Integer, ForeignKey("hacker_news_top_story.id"))
+    parent = Column(Integer, ForeignKey("hacker_news_top_story.hn_id"))
     poll = Column(Integer)
     kids = Column(JSON)
     url = Column(String)
@@ -73,6 +74,7 @@ class HackerNewsNewStory(Base):
     __tablename__ = "hacker_news_new_story"
     #
     id = Column(Integer, primary_key=True, nullable=False)
+    hn_id = Column(Integer, unique=True)
     deleted = Column(Boolean)
     type = Column(String)
     by = Column(String)
@@ -108,7 +110,7 @@ class HackerNewsNewStoryComment(Base):
     time = Column(Integer)
     text = Column(String)
     dead = Column(Boolean)
-    parent = Column(Integer, ForeignKey("hacker_news_new_story.id"))
+    parent = Column(Integer, ForeignKey("hacker_news_new_story.hn_id"))
     poll = Column(Integer)
     kids = Column(JSON)
     url = Column(String)

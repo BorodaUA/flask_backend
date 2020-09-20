@@ -73,6 +73,7 @@ class HackerNewsTopStorySchema(Schema):
 
 class HackerNews_NewStories_Schema(Schema):
     id = fields.Str()
+    hn_id = fields.Int()
     parse_dt = fields.DateTime()
     #
     hn_url = fields.Str()
