@@ -1,11 +1,11 @@
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema, fields
 
 
-class PaginationSchema(Schema):
+class PageNumberSchema(Schema):
     pagenumber = fields.Int(required=True)
 
 
-class StorySchema(Schema):
+class StoryIdSchema(Schema):
     story_id = fields.Int(required=True)
 
 
@@ -15,6 +15,7 @@ class CommentIdSchema(Schema):
 
 class HackerNewsCommentSchema(Schema):
     id = fields.Str()
+    hn_id = fields.Str()
     deleted = fields.Bool()
     type = fields.Str()
     by = fields.Str()
@@ -33,22 +34,7 @@ class HackerNewsCommentSchema(Schema):
     parsed_time = fields.DateTime()
 
 
-class Add_Comment_Schema(Schema):
-    parsed_time = fields.DateTime()
-    by = fields.Str()
-    deleted = fields.Bool()
-    existed_comment_id = fields.Int()
-    id = fields.Int()
-    kids = fields.List(fields.Int())
-    parent = fields.Int()
-    existed_comment_text = fields.Str()
-    text = fields.Str()
-    time = fields.Int()
-    type = fields.Str()
-    origin = fields.Str()
-
-
-class HackerNewsTopStorySchema(Schema):
+class HackerNewsStorySchema(Schema):
     id = fields.Str()
     hn_id = fields.Int()
     deleted = fields.Bool()
@@ -69,29 +55,4 @@ class HackerNewsTopStorySchema(Schema):
     #
     origin = fields.Str()
     parsed_time = fields.DateTime()
-
-
-class HackerNews_NewStories_Schema(Schema):
-    id = fields.Str()
-    hn_id = fields.Int()
-    parse_dt = fields.DateTime()
-    #
-    hn_url = fields.Str()
-    #
-    item_id = fields.Int()
-    deleted = fields.Bool()
-    item_type = fields.Str()
-    by = fields.Str()
-    time = fields.Int()
-    text = fields.Str()
-    dead = fields.Bool()
-    parent = fields.Int()
-    poll = fields.Int()
-    kids = fields.List(fields.Int())
-    url = fields.Str()
-    score = fields.Int()
-    title = fields.Str()
-    parts = fields.List(fields.Int())
-    descendants = fields.Int()
-    comments = fields.Nested(HackerNewsCommentSchema(many=True))
-    origin = fields.Str()
+    updated_time = fields.DateTime()

@@ -67,6 +67,7 @@ class HackerNewsTopStoryComment(Base):
     #
     origin = Column(String)
     parsed_time = Column(DateTime)
+    updated_time = Column(DateTime)
 
 
 class HackerNewsNewStory(Base):
@@ -121,3 +122,4 @@ class HackerNewsNewStoryComment(Base):
     #
     origin = Column(String)
     parsed_time = Column(DateTime)
+    updated_time = Column(DateTime)

@@ -1,11 +1,13 @@
 from flask import Blueprint, make_response, jsonify
 from flask_restful import Api
 from .resources.user import UserRegistration, UserList, UserLogin
-from .resources.hacker_news import (
+from .resources.hacker_news_top_story import (
     HackerNewsTopStoriesResourse,
     HackerNewsTopStoryResource,
     HackerNewsTopStoryCommentsResource,
     HackerNewsTopStoryCommentResource,
+)
+from .resources.hacker_news_new_story import (
     HackerNewsNewStoriesResource,
     HackerNewsNewStoryResource,
     HackerNewsNewStoryCommentsResource,
