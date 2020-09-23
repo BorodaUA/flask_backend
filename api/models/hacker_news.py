@@ -7,7 +7,6 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     ForeignKey,
-    MetaData,
 )
 from sqlalchemy.orm import relationship
 
@@ -19,6 +18,7 @@ class HackerNewsTopStory(Base):
     __tablename__ = "hacker_news_top_story"
     #
     id = Column(Integer, primary_key=True, nullable=False)
+    hn_id = Column(Integer, unique=True)
     deleted = Column(Boolean)
     type = Column(String)
     by = Column(String)
@@ -49,13 +49,14 @@ class HackerNewsTopStoryComment(Base):
     __tablename__ = "hacker_news_top_story_comment"
     #
     id = Column(Integer, primary_key=True, nullable=False)
+    hn_id = Column(Integer)
     deleted = Column(Boolean)
     type = Column(String)
     by = Column(String)
     time = Column(Integer)
     text = Column(String)
     dead = Column(Boolean)
-    parent = Column(Integer, ForeignKey("hacker_news_top_story.id"))
+    parent = Column(Integer, ForeignKey("hacker_news_top_story.hn_id"))
     poll = Column(Integer)
     kids = Column(JSON)
     url = Column(String)
@@ -66,6 +67,7 @@ class HackerNewsTopStoryComment(Base):
     #
     origin = Column(String)
     parsed_time = Column(DateTime)
+    updated_time = Column(DateTime)
 
 
 class HackerNewsNewStory(Base):
@@ -73,6 +75,7 @@ class HackerNewsNewStory(Base):
     __tablename__ = "hacker_news_new_story"
     #
     id = Column(Integer, primary_key=True, nullable=False)
+    hn_id = Column(Integer, unique=True)
     deleted = Column(Boolean)
     type = Column(String)
     by = Column(String)
@@ -101,13 +104,14 @@ class HackerNewsNewStoryComment(Base):
     __tablename__ = "hacker_news_new_story_comment"
     #
     id = Column(Integer, primary_key=True, nullable=False)
+    hn_id = Column(Integer)
     deleted = Column(Boolean)
     type = Column(String)
     by = Column(String)
     time = Column(Integer)
     text = Column(String)
     dead = Column(Boolean)
-    parent = Column(Integer, ForeignKey("hacker_news_new_story.id"))
+    parent = Column(Integer, ForeignKey("hacker_news_new_story.hn_id"))
     poll = Column(Integer)
     kids = Column(JSON)
     url = Column(String)
@@ -118,3 +122,4 @@ class HackerNewsNewStoryComment(Base):
     #
     origin = Column(String)
     parsed_time = Column(DateTime)
+    updated_time = Column(DateTime)

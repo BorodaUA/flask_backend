@@ -1,12 +1,17 @@
 from flask import Blueprint, make_response, jsonify
 from flask_restful import Api
 from .resources.user import UserRegistration, UserList, UserLogin
-from .resources.hacker_news import (
-    HackerNews_TopStories_Resourse,
-    HackerNews_TopStories_Story_Resource,
-    HackerNews_TopStories_Story_Comments_Resource,
-    HackerNews_NewStories_Resource,
-    HackerNews_NewStories_Story_Resource,
+from .resources.hacker_news_top_story import (
+    HackerNewsTopStoriesResourse,
+    HackerNewsTopStoryResource,
+    HackerNewsTopStoryCommentsResource,
+    HackerNewsTopStoryCommentResource,
+)
+from .resources.hacker_news_new_story import (
+    HackerNewsNewStoriesResource,
+    HackerNewsNewStoryResource,
+    HackerNewsNewStoryCommentsResource,
+    HackerNewsNewStoryCommentResource,
 )
 from .resources.blog_news import (
     BlogNewsStoriesResource,
@@ -30,22 +35,44 @@ api.add_resource(UserLogin, "/users/signin")
 api.add_resource(UserList, "/users")
 ###
 api.add_resource(
-    HackerNews_TopStories_Resourse, "/hacker_news/top_stories/<int:page_number>"
+    HackerNewsTopStoriesResourse,
+    "/hackernews/topstories/",
+    methods=["GET"]
 )
 api.add_resource(
-    HackerNews_TopStories_Story_Resource,
-    "/hacker_news/top_stories/stories/<int:story_id>",
+    HackerNewsTopStoryResource,
+    "/hackernews/topstories/<int:story_id>",
+    methods=["GET"]
 )
 api.add_resource(
-    HackerNews_TopStories_Story_Comments_Resource,
-    "/hacker_news/top_stories/stories/<int:story_id>/comments",
+    HackerNewsTopStoryCommentsResource,
+    "/hackernews/topstories/<int:story_id>/comments",
+    methods=["GET", "POST"]
 )
 api.add_resource(
-    HackerNews_NewStories_Resource, "/hacker_news/new_stories/<int:page_number>"
+    HackerNewsTopStoryCommentResource,
+    "/hackernews/topstories/<int:story_id>/comments/<int:comment_id>",
+    methods=["PATCH", "DELETE"]
 )
 api.add_resource(
-    HackerNews_NewStories_Story_Resource,
-    "/hacker_news/new_stories/stories/<int:story_id>",
+    HackerNewsNewStoriesResource,
+    "/hackernews/newstories/",
+    methods=["GET"]
+)
+api.add_resource(
+    HackerNewsNewStoryResource,
+    "/hackernews/newstories/<int:story_id>",
+    methods=["GET"]
+)
+api.add_resource(
+    HackerNewsNewStoryCommentsResource,
+    "/hackernews/newstories/<int:story_id>/comments",
+    methods=["GET", "POST"]
+)
+api.add_resource(
+    HackerNewsNewStoryCommentResource,
+    "/hackernews/newstories/<int:story_id>/comments/<int:comment_id>",
+    methods=["PATCH", "DELETE"]
 )
 ###
 api.add_resource(

@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 topdir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(topdir)
-from api.models import hn_db
+from api.models import hacker_news  # noqa: E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -20,14 +20,19 @@ config = context.config
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 ###
-config.set_main_option("sqlalchemy.url", os.environ.get("HACKER_NEWS_DATABASE_URI"))
+config.set_main_option(
+    "sqlalchemy.url",
+    os.environ.get(
+        "HACKER_NEWS_DATABASE_URI"
+    )
+)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
-target_metadata = hn_db.Base.metadata
+target_metadata = hacker_news.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -73,7 +78,10 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata
+        )
 
         with context.begin_transaction():
             context.run_migrations()
