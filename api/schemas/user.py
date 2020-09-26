@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate
 
 
-class UserSchema(Schema):
+class UserRegisterSchema(Schema):
     id = fields.Str()
     username = fields.Str(
         required=True,
@@ -24,3 +24,24 @@ class UserSchema(Schema):
     )
     is_activated = fields.Bool()
     origin = fields.Str()
+
+
+class UserSigninSchema(Schema):
+    username = fields.Str(
+        required=True,
+        validate=[
+            validate.Length(min=2, max=32),
+            validate.Regexp(regex=r"^[\b\w-]+$")
+        ]
+    )
+    email_address = fields.Str(
+        required=True,
+        validate=validate.Length(min=3, max=256)
+    )
+    password = fields.Str(
+        required=True,
+        validate=[
+            validate.Length(min=6, max=32),
+            validate.Regexp(regex=r"^[\b\w-]+$")
+        ]
+    )

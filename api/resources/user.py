@@ -1,7 +1,7 @@
 from flask import request, jsonify, make_response
 from flask_restful import Resource
 from api.models.user import UserModel, Base
-from api.schemas.user import UserSchema
+from api.schemas.user import UserRegisterSchema, UserSigninSchema
 from marshmallow import ValidationError
 
 
@@ -9,8 +9,10 @@ from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
 
-user_schema = UserSchema()
-users_schema = UserSchema(many=True, exclude=["id"])
+user_register_schema = UserRegisterSchema()
+users_schema = UserRegisterSchema(many=True)
+
+user_signin_schema = UserSigninSchema()
 
 
 class UserRegistration(Resource):
@@ -21,7 +23,7 @@ class UserRegistration(Resource):
         saving new users to the database.
         """
         try:
-            user = user_schema.load(request.get_json())
+            user = user_register_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
         if UserModel.query.filter_by(username=user["username"]).first():
@@ -76,7 +78,7 @@ class UserLogin(Resource):
         And 400 http status if user was not found or password didn't match.
         """
         try:
-            incoming_user = user_schema.load(request.get_json())
+            incoming_user = user_signin_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
         ###
@@ -112,12 +114,12 @@ class UserLogin(Resource):
                     jsonify(
                         {
                             "message": (
-                                f"Login succesfull"
+                                f"Login succesfull "
                                 f"{db_email_address.email_address}"
                             ),
                             "user_uuid": db_email_address.user_uuid,
                             "username": db_email_address.username,
-                            "origin": db_user.origin,
+                            "origin": db_email_address.origin,
                         }
                     ),
                     200,
