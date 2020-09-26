@@ -1,6 +1,6 @@
 from flask import request, jsonify, make_response
 from flask_restful import Resource
-from api.models.user import UserModel
+from api.models.user import UserModel, Base
 from api.schemas.user import UserSchema
 from marshmallow import ValidationError
 
@@ -8,9 +8,6 @@ from marshmallow import ValidationError
 from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
-from db.db import db
-
-db_session = db.session
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True, exclude=["id"])
@@ -48,13 +45,14 @@ class UserRegistration(Resource):
             try:
                 user["user_uuid"] = str(uuid4())
                 user["origin"] = "my_blog"
-                db_session.add(UserModel(**user))
-                db_session.commit()
+                Base.session.add(UserModel(**user))
+                Base.session.commit()
+                Base.session.close()
                 return make_response(
                     jsonify(
                         {
                             "message": (
-                                f"Registration succesfull"
+                                f"Registration succesfull "
                                 f"{user['username']}"
                             ),
                             "username": user["username"],
@@ -66,7 +64,7 @@ class UserRegistration(Resource):
                 )
                 flag = False
             except IntegrityError:
-                db_session.rollback()
+                Base.session.rollback()
 
 
 class UserLogin(Resource):

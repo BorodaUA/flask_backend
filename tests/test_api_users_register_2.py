@@ -112,76 +112,16 @@ def test_api_home_page(client):
     assert "Api Home page" == response["message"]
 
 
-def test_get_users(client):
-    """
-    Test /api/users endpont
-    """
-    response = client.get("/api/users")
-    response = json.loads(response.data)
-    assert {"message": "No users in this table"} == response
-
-
-def test_register_user_no_fields(client):
+def test_register_username_too_long_other_fields_valid(client):
     """
     Test /api/users/register endpont
-    with no required fields "email_address", "username", "password"
-    """
-    request = client.post(
-        "/api/users/register",
-        data=json.dumps({}),
-        content_type="application/json",
-    )
-    response = json.loads(request.data)
-    assert {
-        "email_address": ["Missing data for required field."],
-        "username": ["Missing data for required field."],
-        "password": ["Missing data for required field."],
-    } == response
-
-
-def test_register_user_username_valid(client):
-    """
-    Test /api/users/register endpont
-    with no required fields "email_address", "password"
-    """
-    request = client.post(
-        "/api/users/register",
-        data=json.dumps({"username": "bob_2"}),
-        content_type="application/json",
-    )
-    response = json.loads(request.data)
-    assert {
-        "email_address": ["Missing data for required field."],
-        "password": ["Missing data for required field."],
-    } == response
-
-
-def test_register_user_username_valid_password_valid(client):
-    """
-    Test /api/users/register endpont with no required fields
-    "email_address"
-    """
-    request = client.post(
-        "/api/users/register",
-        data=json.dumps({"username": "bob_2", "password": "123456"}),
-        content_type="application/json",
-    )
-    response = json.loads(request.data)
-    assert {
-        "email_address": ["Missing data for required field."]
-    } == response
-
-
-def test_register_username_empty_other_fields_valid(client):
-    """
-    Test /api/users/register endpont
-    with empty "username" field, other fileds valid
+    with 150 characters long "username" field, other fileds valid
     """
     request = client.post(
         "/api/users/register",
         data=json.dumps(
             {
-                "username": "",
+                "username": "a" * 150,
                 "password": "123456",
                 "email_address": "bob_2@gmail.com",
             }
@@ -190,24 +130,22 @@ def test_register_username_empty_other_fields_valid(client):
     )
     response = json.loads(request.data)
     assert {
-        "username": [
-            "Length must be between 2 and 32.",
-            "String does not match expected pattern."
-        ]
+        "username": ["Length must be between 2 and 32."],
     } == response
 
 
-def test_register_username_empty_password_empty_other_fields_valid(client):
+def test_register_username_and_password_too_long_other_fields_valid(client):
     """
     Test /api/users/register endpont
-    with empty "username" field, other fileds valid
+    with 150 characters long "username" and "password" fields
+    other fields are valid
     """
     request = client.post(
         "/api/users/register",
         data=json.dumps(
             {
-                "username": "",
-                "password": "",
+                "username": "a" * 150,
+                "password": "1" * 150,
                 "email_address": "bob_2@gmail.com",
             }
         ),
@@ -215,18 +153,12 @@ def test_register_username_empty_password_empty_other_fields_valid(client):
     )
     response = json.loads(request.data)
     assert {
-        "username": [
-            "Length must be between 2 and 32.",
-            "String does not match expected pattern."
-        ],
-        "password": [
-            "Length must be between 6 and 32.",
-            "String does not match expected pattern."
-        ],
+        "username": ["Length must be between 2 and 32."],
+        "password": ["Length must be between 6 and 32."],
     } == response
 
 
-def test_register_all_fields_empty(client):
+def test_register_all_fields_too_long(client):
     """
     Test /api/users/register endpont
     with empty "username" field, other fileds valid
@@ -235,25 +167,139 @@ def test_register_all_fields_empty(client):
         "/api/users/register",
         data=json.dumps(
             {
-                "username": "",
-                "password": "",
-                "email_address": "",
+                "username": "a" * 150,
+                "password": "a" * 150,
+                "email_address": "a@" * 150,
             }
         ),
         content_type="application/json",
     )
     response = json.loads(request.data)
     assert {
-        "username": [
-            "Length must be between 2 and 32.",
-            "String does not match expected pattern."
-        ],
-        "password": [
-            "Length must be between 6 and 32.",
-            "String does not match expected pattern."
-        ],
+        "username": ["Length must be between 2 and 32."],
+        "password": ["Length must be between 6 and 32."],
         "email_address": [
             "Not a valid email address.",
             "Length must be between 3 and 256."
         ],
     } == response
+
+
+def test_register_no_at_symbol_in_email_field(client):
+    """
+    Test /api/users/register endpont
+    "email_address" field without @ symbol
+    """
+    request = client.post(
+        "/api/users/register",
+        data=json.dumps(
+            {
+                "username": "bob_2",
+                "password": "123456",
+                "email_address": "bob_2gmail.com",
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(request.data)
+    assert {
+        "email_address": ["Not a valid email address."]
+    } == response
+
+
+def test_register_special_symbols_in_username(client):
+    """
+    Test /api/users/register endpont
+    "email_address" field without @ symbol
+    """
+    request = client.post(
+        "/api/users/register",
+        data=json.dumps(
+            {
+                "username": "bob_2!@#$%^&*()",
+                "password": "123456",
+                "email_address": "bob_2@gmail.com",
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(request.data)
+    assert {
+        "username": ["String does not match expected pattern."]
+    } == response
+
+
+def test_register_special_symbols_in_password(client):
+    """
+    Test /api/users/register endpont
+    "email_address" field without @ symbol
+    """
+    request = client.post(
+        "/api/users/register",
+        data=json.dumps(
+            {
+                "username": "bob_2",
+                "password": "123!@#456",
+                "email_address": "bob_2@gmail.com",
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(request.data)
+    assert {
+        "password": ["String does not match expected pattern."]
+    } == response
+
+
+def test_register_username_valid_password_valid_email_valid(client):
+    """
+    Test /api/users/register endpont
+    with valid "email_address", "username", "password" fields
+    """
+    request = client.post(
+        "/api/users/register",
+        data=json.dumps(
+            {
+                "username": "bob_2",
+                "password": "123456",
+                "email_address": "bob_2@gmail.com",
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(request.data)
+    assert "Registration succesfull bob_2" == response["message"]
+
+
+def test_register_duplicate_username_valid_password_valid(client):
+    """
+    Test /api/users/register endpont
+    with valid "email_address", "username", "password" fields 2 times
+    with duplicate user credentials
+    """
+    request = client.post(
+        "/api/users/register",
+        data=json.dumps(
+            {
+                "username": "bob_2",
+                "password": "123456",
+                "email_address": "bob_2@gmail.com",
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(request.data)
+    assert "Registration succesfull bob_2" == response["message"]
+    request = client.post(
+        "/api/users/register",
+        data=json.dumps(
+            {
+                "username": "bob_2",
+                "password": "123456",
+                "email_address": "bob_2@gmail.com",
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(request.data)
+    assert "User with this username already exist" == response["message"]
