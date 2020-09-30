@@ -17,9 +17,15 @@ class BlogNewsCommentSchema(Schema):
     id = fields.Str()
     deleted = fields.Bool()
     type = fields.Str()
-    by = fields.Str()
+    by = fields.Str(
+        required=True,
+        validate=validate.Length(min=2)
+    )
     time = fields.Int()
-    text = fields.Str()
+    text = fields.Str(
+        required=True,
+        validate=validate.Length(min=1)
+    )
     dead = fields.Bool()
     parent = fields.Int()
     poll = fields.Int()
