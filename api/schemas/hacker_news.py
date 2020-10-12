@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate
 
 
 class PageNumberSchema(Schema):
@@ -39,9 +39,15 @@ class HackerNewsStorySchema(Schema):
     hn_id = fields.Int()
     deleted = fields.Bool()
     type = fields.Str()
-    by = fields.Str()
+    by = fields.Str(
+        required=True,
+        validate=validate.Length(min=1)
+    )
     time = fields.Int()
-    text = fields.Str()
+    text = fields.Str(
+        required=True,
+        validate=validate.Length(min=1)
+    )
     dead = fields.Bool()
     parent = fields.Int()
     poll = fields.Int()

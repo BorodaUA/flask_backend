@@ -185,7 +185,7 @@ class BlogNewsStoryResource(Resource):
     def delete(cls, story_id):
         """
         Getting DELETE requests on the '/api/blog_news/<story_id>'
-        endpoint, and deleating a blognews story
+        endpoint, and deleting a blognews story
         """
         try:
             story_id = {"story_id": story_id}
@@ -354,7 +354,7 @@ class BlogNewsStoryCommentResource(Resource):
         """
         Getting DELETE requests on the
         '/api/blognews/<story_id>/comments/<comment_id>'
-        endpoint, and deleating a blognews story comment by id
+        endpoint, and deleting a blognews story comment by id
         """
         try:
             story_id = {"story_id": story_id}
