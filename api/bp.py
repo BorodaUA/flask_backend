@@ -1,6 +1,10 @@
 from flask import Blueprint, make_response, jsonify
 from flask_restful import Api
-from .resources.user import UserRegistration, UserList, UserLogin
+from .resources.user import (
+    UsersResource,
+    UserResource,
+    UserLogin
+)
 from .resources.hacker_news_top_story import (
     HackerNewsTopStoriesResourse,
     HackerNewsTopStoryResource,
@@ -30,9 +34,16 @@ def api_home_page():
     return make_response(jsonify({"message": "Api Home page"}))
 
 
-api.add_resource(UserRegistration, "/users/register")
+api.add_resource(
+    UsersResource, "/users",
+    methods=["GET", "POST"]
+)
+api.add_resource(
+    UserResource, "/users/<user_uuid>",
+    methods=["GET"]
+)
 api.add_resource(UserLogin, "/users/signin")
-api.add_resource(UserList, "/users")
+# api.add_resource(UserList, "/users")
 ###
 api.add_resource(
     HackerNewsTopStoriesResourse,

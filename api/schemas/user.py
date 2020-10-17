@@ -1,7 +1,16 @@
 from marshmallow import Schema, fields, validate
 
 
-class UserRegisterSchema(Schema):
+class UserUuidSchema(Schema):
+    user_uuid = fields.Str(
+        required=True,
+        validate=[
+            validate.Length(min=2, max=40)
+        ]
+    )
+
+
+class UserSchema(Schema):
     id = fields.Str()
     username = fields.Str(
         required=True,

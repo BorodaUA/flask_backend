@@ -1,7 +1,11 @@
 from flask import request, jsonify, make_response
 from flask_restful import Resource
 from api.models.user import UserModel, Base
-from api.schemas.user import UserRegisterSchema, UserSigninSchema
+from api.schemas.user import (
+    UserUuidSchema,
+    UserSchema,
+    UserSigninSchema,
+)
 from marshmallow import ValidationError
 
 
@@ -9,18 +13,31 @@ from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
 
-user_register_schema = UserRegisterSchema()
-users_schema = UserRegisterSchema(many=True)
+user_uuid_schema = UserUuidSchema()
+user_register_schema = UserSchema()
+users_schema = UserSchema(many=True)
 
 user_signin_schema = UserSigninSchema()
 
 
-class UserRegistration(Resource):
+class UsersResource(Resource):
+    @classmethod
+    def get(cls):
+        """
+        Getting GET requests on the '/api/users' endpoint, and returning a list
+        with all users in database.
+        """
+        if not UserModel.query.all():
+            return make_response(
+                jsonify({"message": "users not found", "code": 404}), 404
+            )
+        return users_schema.dump(UserModel.query.all())
+
     @classmethod
     def post(cls):
         """
-        Getting POST requests on the '/api/users/register' endpoint, and
-        saving new users to the database.
+        Getting POST requests on the '/api/users' endpoint, and
+        saving the new user to the database.
         """
         try:
             user = user_register_schema.load(request.get_json())
@@ -67,6 +84,32 @@ class UserRegistration(Resource):
                 flag = False
             except IntegrityError:
                 Base.session.rollback()
+
+
+class UserResource(Resource):
+    @classmethod
+    def get(cls, user_uuid):
+        """
+        Getting GET requests on the '/api/users/<user_uuid>' endpoint, and
+        returning the user from the database.
+        """
+        try:
+            user_uuid = {"user_uuid": user_uuid}
+            incoming_user_uuid = user_uuid_schema.load(user_uuid)
+        except ValidationError as err:
+            return err.messages, 400
+        if not UserModel.query.filter(
+            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+        ).first():
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+        user = UserModel.query.filter(
+            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+        ).first()
+        return make_response(
+            jsonify(user_register_schema.dump(user))
+        )
 
 
 class UserLogin(Resource):
@@ -141,13 +184,13 @@ class UserLogin(Resource):
             )
 
 
-class UserList(Resource):
-    @classmethod
-    def get(cls):
-        """
-        Getting GET requests on the '/api/users' endpoint, and returning a list
-        with all users in database.
-        """
-        if not UserModel.query.all():
-            return {"message": "No users in this table"}
-        return {"message": users_schema.dump(UserModel.query.all())}
+# class UserList(Resource):
+#     @classmethod
+#     def get(cls):
+#         """
+#         Getting GET requests on the '/api/users' endpoint, and returning a list
+#         with all users in database.
+#         """
+#         if not UserModel.query.all():
+#             return {"message": "No users in this table"}
+#         return {"message": users_schema.dump(UserModel.query.all())}
