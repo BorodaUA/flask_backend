@@ -156,6 +156,35 @@ class UserResource(Resource):
             ), 200
         )
 
+    @classmethod
+    def delete(cls, user_uuid):
+        """
+        Getting DELETE requests on the '/api/users/<user_uuid>' endpoint, and
+        deleting the user in the database.
+        """
+        try:
+            user_uuid = {"user_uuid": user_uuid}
+            incoming_user_uuid = user_uuid_schema.load(user_uuid)
+        except ValidationError as err:
+            return err.messages, 400
+        if not UserModel.query.filter(
+            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+        ).first():
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+        user = UserModel.query.filter(
+            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+        ).first()
+        Base.session.delete(user)
+        Base.session.commit()
+        return make_response(jsonify(
+            {
+                "message": "User deleted",
+                "code": 200
+            }
+        ), 200,)
+
 
 class UserLogin(Resource):
     @classmethod
@@ -227,15 +256,3 @@ class UserLogin(Resource):
                     }
                 ), 400
             )
-
-
-# class UserList(Resource):
-#     @classmethod
-#     def get(cls):
-#         """
-#         Getting GET requests on the '/api/users' endpoint, and returning a list
-#         with all users in database.
-#         """
-#         if not UserModel.query.all():
-#             return {"message": "No users in this table"}
-#         return {"message": users_schema.dump(UserModel.query.all())}
