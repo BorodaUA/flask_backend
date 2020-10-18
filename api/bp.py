@@ -40,7 +40,7 @@ api.add_resource(
 )
 api.add_resource(
     UserResource, "/users/<user_uuid>",
-    methods=["GET"]
+    methods=["GET", "PATCH"]
 )
 api.add_resource(UserLogin, "/users/signin")
 # api.add_resource(UserList, "/users")

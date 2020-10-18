@@ -5,6 +5,7 @@ from api.schemas.user import (
     UserUuidSchema,
     UserSchema,
     UserSigninSchema,
+    UserPasswordUpdateSchema
 )
 from marshmallow import ValidationError
 
@@ -16,8 +17,8 @@ from uuid import uuid4
 user_uuid_schema = UserUuidSchema()
 user_register_schema = UserSchema()
 users_schema = UserSchema(many=True)
-
 user_signin_schema = UserSigninSchema()
+user_password_schema = UserPasswordUpdateSchema()
 
 
 class UsersResource(Resource):
@@ -109,6 +110,50 @@ class UserResource(Resource):
         ).first()
         return make_response(
             jsonify(user_register_schema.dump(user))
+        )
+        if not UserModel.query.filter(
+            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+        ).first():
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+
+    @classmethod
+    def patch(cls, user_uuid):
+        """
+        Getting PATCH requests on the '/api/users/<user_uuid>' endpoint, and
+        updating the user data in the database.
+        """
+        try:
+            user_uuid = {"user_uuid": user_uuid}
+            incoming_user_uuid = user_uuid_schema.load(user_uuid)
+        except ValidationError as err:
+            return err.messages, 400
+        if not UserModel.query.filter(
+            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+        ).first():
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+        try:
+            user = user_password_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        UserModel.query.filter(
+            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+        ).update(
+            {
+                "password": argon2.hash(user["password"])
+            }
+        )
+        Base.session.commit()
+        return make_response(
+            jsonify(
+                {
+                    "message": "User credentials succesfully updated",
+                    "code": 200
+                }
+            ), 200
         )
 
 

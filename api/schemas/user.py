@@ -10,6 +10,16 @@ class UserUuidSchema(Schema):
     )
 
 
+class UserPasswordUpdateSchema(Schema):
+    password = fields.Str(
+        required=True,
+        validate=[
+            validate.Length(min=6, max=32),
+            validate.Regexp(regex=r"^[\b\w-]+$")
+        ]
+    )
+
+
 class UserSchema(Schema):
     id = fields.Str()
     username = fields.Str(
