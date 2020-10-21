@@ -118,7 +118,7 @@ def test_get_users(client):
     """
     response = client.get("/api/users")
     response = json.loads(response.data)
-    assert {"message": "No users in this table"} == response
+    assert {"code": 404, "message": "users not found"} == response
 
 
 def test_register_user_no_fields(client):
@@ -127,7 +127,7 @@ def test_register_user_no_fields(client):
     with no required fields "email_address", "username", "password"
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps({}),
         content_type="application/json",
     )
@@ -145,7 +145,7 @@ def test_register_user_username_valid(client):
     with no required fields "email_address", "password"
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps({"username": "bob_2"}),
         content_type="application/json",
     )
@@ -162,7 +162,7 @@ def test_register_user_username_valid_password_valid(client):
     "email_address"
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps({"username": "bob_2", "password": "123456"}),
         content_type="application/json",
     )
@@ -178,7 +178,7 @@ def test_register_username_empty_other_fields_valid(client):
     with empty "username" field, other fileds valid
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "",
@@ -203,7 +203,7 @@ def test_register_username_empty_password_empty_other_fields_valid(client):
     with empty "username" field, other fileds valid
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "",
@@ -232,7 +232,7 @@ def test_register_all_fields_empty(client):
     with empty "username" field, other fileds valid
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "",

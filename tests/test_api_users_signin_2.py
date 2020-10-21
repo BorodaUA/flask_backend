@@ -122,13 +122,7 @@ def test_signin_user_special_symbols_in_username(client):
         content_type="application/json",
     )
     response = json.loads(request.data)
-    assert (
-        {
-            "username": [
-                "String does not match expected pattern."
-            ],
-        }
-    ) == response
+    assert {"message": "Username or Email address not found."} == response
 
 
 def test_signin_user_special_symbols_in_username_email_addres(client):
@@ -148,13 +142,7 @@ def test_signin_user_special_symbols_in_username_email_addres(client):
         content_type="application/json",
     )
     response = json.loads(request.data)
-    assert (
-        {
-            "username": [
-                "String does not match expected pattern."
-            ],
-        }
-    ) == response
+    assert {"message": "Username or Email address not found."} == response
 
 
 def test_signin_user_special_symbols_in_username_email_addres_password(client):
@@ -176,9 +164,6 @@ def test_signin_user_special_symbols_in_username_email_addres_password(client):
     response = json.loads(request.data)
     assert (
         {
-            "username": [
-                "String does not match expected pattern."
-            ],
             "password": [
                 "String does not match expected pattern.",
             ],
@@ -192,7 +177,7 @@ def test_signin_user_invalid_all_credentials(client):
     credentials.
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -228,7 +213,7 @@ def test_signin_valid_username_invalid_email_invalid_password(client):
     credentials.
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -268,7 +253,7 @@ def test_signin_invalid_username_invalid_password_valid_email(client):
     credentials.
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -308,7 +293,7 @@ def test_signin_valid_username_valid_password_invalid_email(client):
     credentials.
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -344,7 +329,7 @@ def test_signin_invalid_username_valid_password_valid_email(client):
     credentials.
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -380,7 +365,7 @@ def test_signin_valid_username_valid_password_valid_email(client):
     credentials.
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",

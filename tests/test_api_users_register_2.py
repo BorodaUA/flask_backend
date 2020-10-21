@@ -118,7 +118,7 @@ def test_register_username_too_long_other_fields_valid(client):
     with 150 characters long "username" field, other fileds valid
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "a" * 150,
@@ -141,7 +141,7 @@ def test_register_username_and_password_too_long_other_fields_valid(client):
     other fields are valid
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "a" * 150,
@@ -164,7 +164,7 @@ def test_register_all_fields_too_long(client):
     with empty "username" field, other fileds valid
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "a" * 150,
@@ -191,7 +191,7 @@ def test_register_no_at_symbol_in_email_field(client):
     "email_address" field without @ symbol
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -213,7 +213,7 @@ def test_register_special_symbols_in_username(client):
     "email_address" field without @ symbol
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2!@#$%^&*()",
@@ -235,7 +235,7 @@ def test_register_special_symbols_in_password(client):
     "email_address" field without @ symbol
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -257,7 +257,7 @@ def test_register_username_valid_password_valid_email_valid(client):
     with valid "email_address", "username", "password" fields
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -278,7 +278,7 @@ def test_register_duplicate_username_valid_password_valid(client):
     with duplicate user credentials
     """
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",
@@ -291,7 +291,7 @@ def test_register_duplicate_username_valid_password_valid(client):
     response = json.loads(request.data)
     assert "Registration succesfull bob_2" == response["message"]
     request = client.post(
-        "/api/users/register",
+        "/api/users",
         data=json.dumps(
             {
                 "username": "bob_2",

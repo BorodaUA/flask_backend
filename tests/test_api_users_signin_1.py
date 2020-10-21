@@ -179,8 +179,7 @@ def test_signin_all_fields_empty(client):
     assert (
         {
             "username": [
-                "Length must be between 2 and 32.",
-                "String does not match expected pattern."
+                "Length must be between 3 and 256.",
             ],
             "password": [
                 "Length must be between 6 and 32.",
@@ -270,7 +269,7 @@ def test_signin_user_username_too_long(client):
     assert (
         {
             "username": [
-                "Length must be between 2 and 32.",
+                "Length must be between 3 and 256.",
             ],
         }
     ) == response
@@ -296,7 +295,7 @@ def test_signin_user_username_email_addres_too_long(client):
     assert (
         {
             "username": [
-                "Length must be between 2 and 32.",
+                "Length must be between 3 and 256.",
             ],
             "email_address": [
                 "Length must be between 3 and 256."
@@ -325,7 +324,7 @@ def test_signin_user_username_email_addres_password_too_long(client):
     assert (
         {
             "username": [
-                "Length must be between 2 and 32.",
+                "Length must be between 3 and 256.",
             ],
             "email_address": [
                 "Length must be between 3 and 256."
