@@ -1,12 +1,15 @@
 from flask import request, jsonify, make_response
 from flask_restful import Resource
 from api.models.user import UserModel, Base
+from api.models.blog_news import BlogNewsStory
 from api.schemas.user import (
     UserUuidSchema,
     UserSchema,
     UserSigninSchema,
-    UserPasswordUpdateSchema
+    UserPasswordUpdateSchema,
+    UsernameSchema
 )
+from api.schemas.blog_news import BlogNewsStorySchema, StoryIdSchema
 from marshmallow import ValidationError
 
 
@@ -19,6 +22,10 @@ user_register_schema = UserSchema()
 users_schema = UserSchema(many=True)
 user_signin_schema = UserSigninSchema()
 user_password_schema = UserPasswordUpdateSchema()
+username_schema = UsernameSchema()
+blognews_stories_schema = BlogNewsStorySchema(many=True)
+blognews_story_schema = BlogNewsStorySchema()
+story_id_schema = StoryIdSchema()
 
 
 class UsersResource(Resource):
@@ -256,3 +263,50 @@ class UserLogin(Resource):
                     }
                 ), 400
             )
+
+
+class UserStories(Resource):
+    @classmethod
+    def get(cls, username):
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        users_stories = BlogNewsStory.query.filter(
+            BlogNewsStory.by == incoming_username['username']
+        ).all()
+        if not users_stories:
+            return make_response(
+                jsonify(
+                    {'message': 'stories not found', 'code': 404}
+                ), 404
+            )
+        return jsonify(blognews_stories_schema.dump(users_stories))
+
+
+class UserStory(Resource):
+    @classmethod
+    def get(cls, username, story_id):
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        try:
+            story_id = {"story_id": story_id}
+            incoming_story_id = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        user_story = BlogNewsStory.query.filter(
+            BlogNewsStory.by == incoming_username['username']
+        ).filter(
+            BlogNewsStory.id == incoming_story_id['story_id']
+        ).first()
+        if not user_story:
+            return make_response(
+                jsonify(
+                    {'message': 'story not found', 'code': 404}
+                ), 404
+            )
+        return jsonify(blognews_story_schema.dump(user_story))

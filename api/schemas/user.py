@@ -1,6 +1,15 @@
 from marshmallow import Schema, fields, validate
 
 
+class UsernameSchema(Schema):
+    username = fields.Str(
+        required=True,
+        validate=[
+            validate.Length(min=2, max=32)
+        ]
+    )
+
+
 class UserUuidSchema(Schema):
     user_uuid = fields.Str(
         required=True,

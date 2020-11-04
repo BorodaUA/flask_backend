@@ -3,7 +3,9 @@ from flask_restful import Api
 from .resources.user import (
     UsersResource,
     UserResource,
-    UserLogin
+    UserLogin,
+    UserStories,
+    UserStory
 )
 from .resources.hacker_news_top_story import (
     HackerNewsTopStoriesResourse,
@@ -43,7 +45,16 @@ api.add_resource(
     methods=["GET", "PATCH", "DELETE"]
 )
 api.add_resource(UserLogin, "/users/signin")
-# api.add_resource(UserList, "/users")
+api.add_resource(
+    UserStories, "/users/<username>/stories",
+    methods=["GET"]
+
+)
+api.add_resource(
+    UserStory, "/users/<username>/stories/<int:story_id>",
+    methods=["GET"]
+
+)
 ###
 api.add_resource(
     HackerNewsTopStoriesResourse,
