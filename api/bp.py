@@ -46,7 +46,7 @@ api.add_resource(
 )
 api.add_resource(UserLogin, "/users/signin")
 api.add_resource(
-    UserStories, "/users/<username>/stories",
+    UserStories, "/users/<username>/stories/",
     methods=["GET"]
 
 )

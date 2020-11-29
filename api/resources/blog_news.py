@@ -40,6 +40,27 @@ add_story_schema = BlogNewsStorySchema(
         "origin",
     ]
 )
+edit_story_schema = BlogNewsStorySchema(
+    exclude=[
+        "id",
+        "deleted",
+        "type",
+        'by',
+        "time",
+        # 'text',
+        "dead",
+        "parent",
+        "poll",
+        "kids",
+        # 'url',
+        "score",
+        # 'title',
+        "parts",
+        "descendants",
+        "comments",
+        "origin",
+    ]
+)
 add_comment_schema = BlogNewsCommentSchema(
     exclude=[
         "id",
@@ -228,7 +249,7 @@ class BlogNewsStoryResource(Resource):
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
         try:
-            story = add_story_schema.load(request.get_json())
+            story = edit_story_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
         BlogNewsStory.query.filter(

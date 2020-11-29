@@ -400,7 +400,6 @@ def test_blognews_patch_valid_story_id_no_required_fields(client):
     assert (
         {
             'url': ['Missing data for required field.'],
-            'by': ['Missing data for required field.'],
             'text': ['Missing data for required field.'],
             'title': ['Missing data for required field.'],
         }
@@ -436,7 +435,6 @@ def test_blognews_patch_valid_story_id_empty_required_fields(client):
         data=json.dumps(
             {
                 'url': '',
-                'by': '',
                 'text': '',
                 'title': '',
             }
@@ -447,7 +445,6 @@ def test_blognews_patch_valid_story_id_empty_required_fields(client):
     assert (
         {
             'url': ['Shorter than minimum length 1.'],
-            'by': ['Shorter than minimum length 2.'],
             'text': ['Shorter than minimum length 1.'],
             'title': ['Shorter than minimum length 1.'],
         }
@@ -483,7 +480,6 @@ def test_blognews_patch_valid_story_id_required_fields_None(client):
         data=json.dumps(
             {
                 'url': None,
-                'by': None,
                 'text': None,
                 'title': None,
             }
@@ -494,7 +490,6 @@ def test_blognews_patch_valid_story_id_required_fields_None(client):
     assert (
         {
             'url': ['Field may not be null.'],
-            'by': ['Field may not be null.'],
             'text': ['Field may not be null.'],
             'title': ['Field may not be null.'],
         }
@@ -530,7 +525,6 @@ def test_blognews_patch_valid_story_id_invalid_required_fields_type(client):
         data=json.dumps(
             {
                 'url': [1],
-                'by': {2: None},
                 'text': (None, 3),
                 'title': [[4], [5]],
             }
@@ -541,7 +535,6 @@ def test_blognews_patch_valid_story_id_invalid_required_fields_type(client):
     assert (
         {
             'url': ['Not a valid string.'],
-            'by': ['Not a valid string.'],
             'text': ['Not a valid string.'],
             'title': ['Not a valid string.'],
         }
@@ -577,7 +570,6 @@ def test_blognews_patch_valid_story_id_extra_field(client):
         data=json.dumps(
             {
                 'url': 'https://www.google.com/search?q=updated',
-                'by': 'test_bob_2',
                 'text': 'uptated text from test',
                 'title': 'updated title from test',
                 'new_field': 'new field outside the schema'
@@ -622,7 +614,6 @@ def test_blognews_patch_valid_story_id_valid_required_fields(client):
         data=json.dumps(
             {
                 'url': 'https://www.google.com/search?q=updated',
-                'by': 'test_bob_2',
                 'text': 'uptated text from test',
                 'title': 'updated title from test',
             }

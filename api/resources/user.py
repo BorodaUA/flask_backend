@@ -9,10 +9,14 @@ from api.schemas.user import (
     UserPasswordUpdateSchema,
     UsernameSchema
 )
-from api.schemas.blog_news import BlogNewsStorySchema, StoryIdSchema
+from api.schemas.blog_news import (
+    BlogNewsStorySchema,
+    StoryIdSchema,
+    NewsPaginationSchema
+)
 from marshmallow import ValidationError
-
-
+from sqlalchemy_pagination import paginate
+from sqlalchemy import desc
 from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
@@ -26,6 +30,7 @@ username_schema = UsernameSchema()
 blognews_stories_schema = BlogNewsStorySchema(many=True)
 blognews_story_schema = BlogNewsStorySchema()
 story_id_schema = StoryIdSchema()
+news_pagination_schema = NewsPaginationSchema()
 
 
 class UsersResource(Resource):
@@ -268,6 +273,26 @@ class UserLogin(Resource):
 class UserStories(Resource):
     @classmethod
     def get(cls, username):
+        """
+        Getting GET requests on the
+        '/api/users/<username>/stories/?pagenumber=N' endpoint,
+        and returning up to 500 user`s stories
+        """
+        try:
+            pagenumber = {"pagenumber": request.args.get("pagenumber")}
+            incoming_pagination = news_pagination_schema.load(pagenumber)
+        except ValidationError as err:
+            return err.messages, 400
+        if incoming_pagination["pagenumber"] <= 0:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "pagenumber must be greater then 0",
+                        "code": 400
+                    }
+                ),
+                400,
+            )
         try:
             username = {"username": username}
             incoming_username = username_schema.load(username)
@@ -282,7 +307,35 @@ class UserStories(Resource):
                     {'message': 'stories not found', 'code': 404}
                 ), 404
             )
-        return jsonify(blognews_stories_schema.dump(users_stories))
+        page = paginate(
+            BlogNewsStory.query.filter(
+                BlogNewsStory.by == incoming_username['username']
+            ).order_by(desc(BlogNewsStory.time))
+            .limit(500)
+            .from_self(),
+            incoming_pagination["pagenumber"],
+            30,
+        )
+        result_page = {
+            "current_page": incoming_pagination["pagenumber"],
+            "has_next": page.has_next,
+            "has_previous": page.has_previous,
+            "items": blognews_stories_schema.dump(page.items),
+            "next_page": page.next_page,
+            "previous_page": page.previous_page,
+            "pages": page.pages,
+            "total": page.total,
+        }
+        if incoming_pagination["pagenumber"] > result_page["pages"]:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "Pagination page not found",
+                        "code": 404
+                    }
+                ), 404,
+            )
+        return jsonify(result_page)
 
 
 class UserStory(Resource):
