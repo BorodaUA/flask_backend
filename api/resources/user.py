@@ -40,11 +40,14 @@ class UsersResource(Resource):
         Getting GET requests on the '/api/users' endpoint, and returning a list
         with all users in database.
         """
-        if not UserModel.query.all():
+        users = UserModel.query.all()
+        if not users:
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "users not found", "code": 404}), 404
             )
-        return users_schema.dump(UserModel.query.all())
+        UserModel.session.close()
+        return users_schema.dump(users)
 
     @classmethod
     def post(cls):
