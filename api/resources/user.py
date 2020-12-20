@@ -59,7 +59,14 @@ class UsersResource(Resource):
             user = user_register_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if UserModel.query.filter_by(username=user["username"]).first():
+        user_username = UserModel.query.filter_by(
+            username=user["username"]
+        ).first()
+        user_email = UserModel.query.filter_by(
+            email_address=user["email_address"]
+        ).first()
+        if user_username:
+            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
@@ -67,9 +74,8 @@ class UsersResource(Resource):
                     }
                 ), 400
             )
-        if UserModel.query.filter_by(
-            email_address=user["email_address"]
-        ).first():
+        if user_email:
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "User with this email already exist"}), 400
             )
@@ -80,9 +86,8 @@ class UsersResource(Resource):
             try:
                 user["user_uuid"] = str(uuid4())
                 user["origin"] = "my_blog"
-                Base.session.add(UserModel(**user))
-                Base.session.commit()
-                Base.session.close()
+                UserModel.session.add(UserModel(**user))
+                UserModel.session.commit()
                 return make_response(
                     jsonify(
                         {
