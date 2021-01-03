@@ -51,7 +51,7 @@ api.add_resource(
 
 )
 api.add_resource(
-    UserStory, "/users/<username>/stories/<int:story_id>",
+    UserStory, "/users/<username>/stories/<story_id>",
     methods=["GET"]
 
 )

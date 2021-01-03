@@ -352,6 +352,11 @@ class UserStories(Resource):
 class UserStory(Resource):
     @classmethod
     def get(cls, username, story_id):
+        """
+        Getting GET requests on the
+        '/api/users/<username>/stories/<story_id>' endpoint,
+        and returning user`s story by story id
+        """
         try:
             username = {"username": username}
             incoming_username = username_schema.load(username)
@@ -368,9 +373,11 @@ class UserStory(Resource):
             BlogNewsStory.id == incoming_story_id['story_id']
         ).first()
         if not user_story:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {'message': 'story not found', 'code': 404}
                 ), 404
             )
+        BlogNewsStory.session.close()
         return jsonify(blognews_story_schema.dump(user_story))
