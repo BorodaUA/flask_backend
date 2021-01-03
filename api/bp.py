@@ -104,7 +104,7 @@ api.add_resource(
 )
 api.add_resource(
     BlogNewsStoryResource,
-    "/blognews/<int:story_id>",
+    "/blognews/<story_id>",
     methods=["GET", "DELETE", "PATCH"]
 )
 api.add_resource(
