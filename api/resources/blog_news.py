@@ -173,8 +173,8 @@ class BlogNewsStoriesResource(Resource):
             "origin": "my_blog",
         }
         data = BlogNewsStory(**full_story)
-        blog_news.Base.session.add(data)
-        blog_news.Base.session.commit()
+        BlogNewsStory.session.add(data)
+        BlogNewsStory.session.commit()
         return make_response(jsonify(
             {
                 "message": "Story added",
