@@ -143,24 +143,26 @@ class UserResource(Resource):
             incoming_user_uuid = user_uuid_schema.load(user_uuid)
         except ValidationError as err:
             return err.messages, 400
-        if not UserModel.query.filter(
+        try:
+            incoming_user = user_password_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        user = UserModel.query.filter(
             UserModel.user_uuid == incoming_user_uuid['user_uuid']
-        ).first():
+        ).first()
+        if not user:
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "user not found", "code": 404}), 404
             )
-        try:
-            user = user_password_schema.load(request.get_json())
-        except ValidationError as err:
-            return err.messages, 400
         UserModel.query.filter(
             UserModel.user_uuid == incoming_user_uuid['user_uuid']
         ).update(
             {
-                "password": argon2.hash(user["password"])
+                "password": argon2.hash(incoming_user["password"])
             }
         )
-        Base.session.commit()
+        UserModel.session.commit()
         return make_response(
             jsonify(
                 {
