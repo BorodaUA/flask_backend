@@ -183,17 +183,16 @@ class UserResource(Resource):
             incoming_user_uuid = user_uuid_schema.load(user_uuid)
         except ValidationError as err:
             return err.messages, 400
-        if not UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
-        ).first():
-            return make_response(
-                jsonify({"message": "user not found", "code": 404}), 404
-            )
         user = UserModel.query.filter(
             UserModel.user_uuid == incoming_user_uuid['user_uuid']
         ).first()
-        Base.session.delete(user)
-        Base.session.commit()
+        if not user:
+            UserModel.session.close()
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+        UserModel.session.delete(user)
+        UserModel.session.commit()
         return make_response(jsonify(
             {
                 "message": "User deleted",
