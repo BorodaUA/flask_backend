@@ -223,6 +223,7 @@ class UserLogin(Resource):
         ###
         if db_user:
             if argon2.verify(incoming_user["password"], db_user.password):
+                UserModel.session.close()
                 return make_response(
                     jsonify(
                         {
@@ -234,6 +235,7 @@ class UserLogin(Resource):
                     ),
                     200,
                 )
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "Username or password Incorect!"}), 400
             )
@@ -242,6 +244,7 @@ class UserLogin(Resource):
                 incoming_user["password"],
                 db_email_address.password
             ):
+                UserModel.session.close()
                 return make_response(
                     jsonify(
                         {
@@ -256,6 +259,7 @@ class UserLogin(Resource):
                     ),
                     200,
                 )
+            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
@@ -264,6 +268,7 @@ class UserLogin(Resource):
                 ), 400
             )
         else:
+            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
