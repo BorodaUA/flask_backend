@@ -217,17 +217,16 @@ class BlogNewsStoryResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
-            BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Story not found", "code": 404}), 404
-            )
         story = BlogNewsStory.query.filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
         ).first()
-        blog_news.Base.session.delete(story)
-        blog_news.Base.session.commit()
+        if not story:
+            BlogNewsStory.session.close()
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
+        BlogNewsStory.session.delete(story)
+        BlogNewsStory.session.commit()
         return make_response(jsonify(
             {
                 "message": "Story deleted",
