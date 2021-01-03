@@ -253,7 +253,7 @@ class BlogNewsStoryResource(Resource):
             BlogNewsStory.id == incoming_story_id["story_id"]
         ).first()
         if not blognews_story:
-            BlogNewsStory.session.commit()
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
@@ -285,9 +285,11 @@ class BlogNewsStoryCommentsResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        story = BlogNewsStory.query.filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        if not story:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
@@ -298,6 +300,7 @@ class BlogNewsStoryCommentsResource(Resource):
             .order_by(desc(BlogNewsStoryComment.time))
             .all()
         )
+        BlogNewsStory.session.close()
         return jsonify(stories_schema.dump(comments))
 
     @classmethod
