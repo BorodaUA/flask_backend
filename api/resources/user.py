@@ -119,24 +119,18 @@ class UserResource(Resource):
             incoming_user_uuid = user_uuid_schema.load(user_uuid)
         except ValidationError as err:
             return err.messages, 400
-        if not UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
-        ).first():
-            return make_response(
-                jsonify({"message": "user not found", "code": 404}), 404
-            )
         user = UserModel.query.filter(
             UserModel.user_uuid == incoming_user_uuid['user_uuid']
         ).first()
-        return make_response(
-            jsonify(user_register_schema.dump(user))
-        )
-        if not UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
-        ).first():
+        if not user:
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "user not found", "code": 404}), 404
             )
+        UserModel.session.close()
+        return make_response(
+            jsonify(user_register_schema.dump(user))
+        )
 
     @classmethod
     def patch(cls, user_uuid):
