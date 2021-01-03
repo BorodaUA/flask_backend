@@ -314,16 +314,18 @@ class BlogNewsStoryCommentsResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
-            BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Story not found", "code": 404}), 404
-            )
         try:
             incoming_comment = add_comment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        story = BlogNewsStory.query.filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).first()
+        if not story:
+            BlogNewsStory.session.close()
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
         incoming_comment["dead"] = False
         incoming_comment["deleted"] = False
         incoming_comment["descendants"] = 0
@@ -333,8 +335,8 @@ class BlogNewsStoryCommentsResource(Resource):
         incoming_comment["time"] = int(time.time())
         incoming_comment["type"] = "comment"
         comment_data = BlogNewsStoryComment(**incoming_comment)
-        blog_news.Base.session.add(comment_data)
-        blog_news.Base.session.commit()
+        BlogNewsStoryComment.session.add(comment_data)
+        BlogNewsStoryComment.session.commit()
         return make_response(jsonify(
             {
                 "message": "Comment added",
