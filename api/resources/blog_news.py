@@ -363,21 +363,23 @@ class BlogNewsStoryCommentResource(Resource):
             incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        story = BlogNewsStory.query.filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Story not found", "code": 404}), 404
-            )
-        if not BlogNewsStoryComment.query.filter(
-            BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Comment not found", "code": 404}), 404
-            )
+        ).first()
         comment = BlogNewsStoryComment.query.filter(
             BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
         ).first()
+        if not story:
+            BlogNewsStory.session.close()
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
+        if not comment:
+            BlogNewsStoryComment.session.close()
+            return make_response(
+                jsonify({"message": "Comment not found", "code": 404}), 404
+            )
+        BlogNewsStoryComment.session.close()
         return make_response(jsonify(story_schema.dump(comment)), 200)
 
     @classmethod
