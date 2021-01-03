@@ -310,6 +310,7 @@ class UserStories(Resource):
             BlogNewsStory.by == incoming_username['username']
         ).all()
         if not users_stories:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {'message': 'stories not found', 'code': 404}
@@ -335,6 +336,7 @@ class UserStories(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -343,6 +345,7 @@ class UserStories(Resource):
                     }
                 ), 404,
             )
+        BlogNewsStory.session.close()
         return jsonify(result_page)
 
 
