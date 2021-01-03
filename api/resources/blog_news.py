@@ -105,7 +105,9 @@ class BlogNewsStoriesResource(Resource):
                 ),
                 400,
             )
-        if not blog_news.BlogNewsStory.query.all():
+        blognews_stories = blog_news.BlogNewsStory.query.all()
+        if not blognews_stories:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -132,6 +134,7 @@ class BlogNewsStoriesResource(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -140,6 +143,7 @@ class BlogNewsStoriesResource(Resource):
                     }
                 ), 404,
             )
+        BlogNewsStory.session.close()
         return jsonify(result_page)
 
     @classmethod
