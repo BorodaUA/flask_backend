@@ -74,7 +74,9 @@ class HackerNewsTopStoriesResourse(Resource):
                     ),
                 400,
             )
-        if not HackerNewsTopStory.query.all():
+        stories = HackerNewsTopStory.query.all()
+        if not stories:
+            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -104,6 +106,7 @@ class HackerNewsTopStoriesResourse(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
+            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -112,8 +115,7 @@ class HackerNewsTopStoriesResourse(Resource):
                     }
                 ), 404,
             )
-        Base.session.commit()
-        Base.session.close()
+        HackerNewsTopStory.session.close()
         return jsonify(result_page)
 
 
