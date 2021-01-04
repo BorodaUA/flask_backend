@@ -38,6 +38,7 @@ class HackerNewsTopStory(Base):
         "HackerNewsTopStoryComment",
         backref="hacker_news_top_story",
         order_by="desc(HackerNewsTopStoryComment.parsed_time)",
+        lazy='subquery'
     )
     #
     origin = Column(String)
