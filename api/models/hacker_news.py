@@ -95,6 +95,7 @@ class HackerNewsNewStory(Base):
         "HackerNewsNewStoryComment",
         backref="hacker_news_new_story",
         order_by="desc(HackerNewsNewStoryComment.parsed_time)",
+        lazy='subquery'
     )
     origin = Column(String)
     parsed_time = Column(DateTime)
