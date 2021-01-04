@@ -1,7 +1,6 @@
 from flask import request, jsonify, make_response
 from flask_restful import Resource
 from api.models.hacker_news import (
-    Base,
     HackerNewsTopStory,
     HackerNewsTopStoryComment,
 )
@@ -245,6 +244,10 @@ class HackerNewsTopStoryCommentResource(Resource):
             incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
+        try:
+            incoming_comment = add_comment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
         story = HackerNewsTopStory.query.filter(
             HackerNewsTopStory.hn_id == incoming_story["story_id"]
         ).first()
@@ -261,10 +264,6 @@ class HackerNewsTopStoryCommentResource(Resource):
             return make_response(
                 jsonify({"message": "Comment not found", "code": 404}), 404
             )
-        try:
-            incoming_comment = add_comment_schema.load(request.get_json())
-        except ValidationError as err:
-            return err.messages, 400
         HackerNewsTopStoryComment.query.filter(
             HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
         ).update(
