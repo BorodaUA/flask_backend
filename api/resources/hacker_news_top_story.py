@@ -161,9 +161,11 @@ class HackerNewsTopStoryCommentsResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNewsTopStory.query.filter(
+        story = HackerNewsTopStory.query.filter(
             HackerNewsTopStory.hn_id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        if not story:
+            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
@@ -175,6 +177,8 @@ class HackerNewsTopStoryCommentsResource(Resource):
             .order_by(desc(HackerNewsTopStoryComment.parsed_time))
             .all()
         )
+        HackerNewsTopStory.session.close()
+        HackerNewsTopStoryComment.session.close()
         return make_response(jsonify(comments_schema.dump(comments)), 200)
 
     def post(cls, story_id):
