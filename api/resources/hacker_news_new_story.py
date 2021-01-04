@@ -191,16 +191,18 @@ class HackerNewsNewStoryCommentsResource(Resource):
             incoming_story = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNewsNewStory.query.filter(
-            HackerNewsNewStory.hn_id == incoming_story["story_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Story not found", "code": 404}), 404
-            )
         try:
             incoming_comment = add_comment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        story = HackerNewsNewStory.query.filter(
+            HackerNewsNewStory.hn_id == incoming_story["story_id"]
+        ).first()
+        if not story:
+            HackerNewsNewStory.session.close()
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
         incoming_comment["dead"] = False
         incoming_comment["deleted"] = False
         incoming_comment["descendants"] = 0
@@ -213,8 +215,9 @@ class HackerNewsNewStoryCommentsResource(Resource):
                                 datetime.now(), "%Y-%m-%d %H:%M:%S.%f"
                             )[:-3]
         comment_data = HackerNewsNewStoryComment(**incoming_comment)
-        Base.session.add(comment_data)
-        Base.session.commit()
+        HackerNewsNewStoryComment.session.add(comment_data)
+        HackerNewsNewStoryComment.session.commit()
+        HackerNewsNewStory.session.close()
         return make_response(jsonify(
             {
                 "message": "Comment added",
