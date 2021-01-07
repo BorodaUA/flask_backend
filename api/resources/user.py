@@ -40,11 +40,14 @@ class UsersResource(Resource):
         Getting GET requests on the '/api/users' endpoint, and returning a list
         with all users in database.
         """
-        if not UserModel.query.all():
+        users = UserModel.query.all()
+        if not users:
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "users not found", "code": 404}), 404
             )
-        return users_schema.dump(UserModel.query.all())
+        UserModel.session.close()
+        return users_schema.dump(users)
 
     @classmethod
     def post(cls):
@@ -56,7 +59,14 @@ class UsersResource(Resource):
             user = user_register_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if UserModel.query.filter_by(username=user["username"]).first():
+        user_username = UserModel.query.filter_by(
+            username=user["username"]
+        ).first()
+        user_email = UserModel.query.filter_by(
+            email_address=user["email_address"]
+        ).first()
+        if user_username:
+            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
@@ -64,9 +74,8 @@ class UsersResource(Resource):
                     }
                 ), 400
             )
-        if UserModel.query.filter_by(
-            email_address=user["email_address"]
-        ).first():
+        if user_email:
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "User with this email already exist"}), 400
             )
@@ -77,9 +86,8 @@ class UsersResource(Resource):
             try:
                 user["user_uuid"] = str(uuid4())
                 user["origin"] = "my_blog"
-                Base.session.add(UserModel(**user))
-                Base.session.commit()
-                Base.session.close()
+                UserModel.session.add(UserModel(**user))
+                UserModel.session.commit()
                 return make_response(
                     jsonify(
                         {
@@ -111,24 +119,18 @@ class UserResource(Resource):
             incoming_user_uuid = user_uuid_schema.load(user_uuid)
         except ValidationError as err:
             return err.messages, 400
-        if not UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
-        ).first():
-            return make_response(
-                jsonify({"message": "user not found", "code": 404}), 404
-            )
         user = UserModel.query.filter(
             UserModel.user_uuid == incoming_user_uuid['user_uuid']
         ).first()
-        return make_response(
-            jsonify(user_register_schema.dump(user))
-        )
-        if not UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
-        ).first():
+        if not user:
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "user not found", "code": 404}), 404
             )
+        UserModel.session.close()
+        return make_response(
+            jsonify(user_register_schema.dump(user))
+        )
 
     @classmethod
     def patch(cls, user_uuid):
@@ -141,24 +143,26 @@ class UserResource(Resource):
             incoming_user_uuid = user_uuid_schema.load(user_uuid)
         except ValidationError as err:
             return err.messages, 400
-        if not UserModel.query.filter(
+        try:
+            incoming_user = user_password_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        user = UserModel.query.filter(
             UserModel.user_uuid == incoming_user_uuid['user_uuid']
-        ).first():
+        ).first()
+        if not user:
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "user not found", "code": 404}), 404
             )
-        try:
-            user = user_password_schema.load(request.get_json())
-        except ValidationError as err:
-            return err.messages, 400
         UserModel.query.filter(
             UserModel.user_uuid == incoming_user_uuid['user_uuid']
         ).update(
             {
-                "password": argon2.hash(user["password"])
+                "password": argon2.hash(incoming_user["password"])
             }
         )
-        Base.session.commit()
+        UserModel.session.commit()
         return make_response(
             jsonify(
                 {
@@ -179,17 +183,16 @@ class UserResource(Resource):
             incoming_user_uuid = user_uuid_schema.load(user_uuid)
         except ValidationError as err:
             return err.messages, 400
-        if not UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
-        ).first():
-            return make_response(
-                jsonify({"message": "user not found", "code": 404}), 404
-            )
         user = UserModel.query.filter(
             UserModel.user_uuid == incoming_user_uuid['user_uuid']
         ).first()
-        Base.session.delete(user)
-        Base.session.commit()
+        if not user:
+            UserModel.session.close()
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+        UserModel.session.delete(user)
+        UserModel.session.commit()
         return make_response(jsonify(
             {
                 "message": "User deleted",
@@ -220,6 +223,7 @@ class UserLogin(Resource):
         ###
         if db_user:
             if argon2.verify(incoming_user["password"], db_user.password):
+                UserModel.session.close()
                 return make_response(
                     jsonify(
                         {
@@ -231,6 +235,7 @@ class UserLogin(Resource):
                     ),
                     200,
                 )
+            UserModel.session.close()
             return make_response(
                 jsonify({"message": "Username or password Incorect!"}), 400
             )
@@ -239,6 +244,7 @@ class UserLogin(Resource):
                 incoming_user["password"],
                 db_email_address.password
             ):
+                UserModel.session.close()
                 return make_response(
                     jsonify(
                         {
@@ -253,6 +259,7 @@ class UserLogin(Resource):
                     ),
                     200,
                 )
+            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
@@ -261,6 +268,7 @@ class UserLogin(Resource):
                 ), 400
             )
         else:
+            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
@@ -302,6 +310,7 @@ class UserStories(Resource):
             BlogNewsStory.by == incoming_username['username']
         ).all()
         if not users_stories:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {'message': 'stories not found', 'code': 404}
@@ -327,6 +336,7 @@ class UserStories(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -335,12 +345,18 @@ class UserStories(Resource):
                     }
                 ), 404,
             )
+        BlogNewsStory.session.close()
         return jsonify(result_page)
 
 
 class UserStory(Resource):
     @classmethod
     def get(cls, username, story_id):
+        """
+        Getting GET requests on the
+        '/api/users/<username>/stories/<story_id>' endpoint,
+        and returning user`s story by story id
+        """
         try:
             username = {"username": username}
             incoming_username = username_schema.load(username)
@@ -357,9 +373,11 @@ class UserStory(Resource):
             BlogNewsStory.id == incoming_story_id['story_id']
         ).first()
         if not user_story:
+            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {'message': 'story not found', 'code': 404}
                 ), 404
             )
+        BlogNewsStory.session.close()
         return jsonify(blognews_story_schema.dump(user_story))

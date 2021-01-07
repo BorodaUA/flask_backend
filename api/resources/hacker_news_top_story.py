@@ -1,7 +1,6 @@
 from flask import request, jsonify, make_response
 from flask_restful import Resource
 from api.models.hacker_news import (
-    Base,
     HackerNewsTopStory,
     HackerNewsTopStoryComment,
 )
@@ -74,7 +73,9 @@ class HackerNewsTopStoriesResourse(Resource):
                     ),
                 400,
             )
-        if not HackerNewsTopStory.query.all():
+        stories = HackerNewsTopStory.query.all()
+        if not stories:
+            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -104,6 +105,7 @@ class HackerNewsTopStoriesResourse(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
+            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -112,8 +114,7 @@ class HackerNewsTopStoriesResourse(Resource):
                     }
                 ), 404,
             )
-        Base.session.commit()
-        Base.session.close()
+        HackerNewsTopStory.session.close()
         return jsonify(result_page)
 
 
@@ -130,12 +131,6 @@ class HackerNewsTopStoryResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNewsTopStory.query.filter(
-            HackerNewsTopStory.hn_id == incoming_story_id["story_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Story not found", "code": 404}), 404
-            )
         story = (
             HackerNewsTopStory.query.filter(
                 HackerNewsTopStory.hn_id == incoming_story_id["story_id"],
@@ -143,6 +138,12 @@ class HackerNewsTopStoryResource(Resource):
             .order_by(HackerNewsTopStory.parsed_time)
             .first()
         )
+        if not story:
+            HackerNewsTopStory.session.close()
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
+        HackerNewsTopStory.session.close()
         return make_response(jsonify(story_schema.dump(story)), 200)
 
 
@@ -159,9 +160,11 @@ class HackerNewsTopStoryCommentsResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNewsTopStory.query.filter(
+        story = HackerNewsTopStory.query.filter(
             HackerNewsTopStory.hn_id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        if not story:
+            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
@@ -173,6 +176,8 @@ class HackerNewsTopStoryCommentsResource(Resource):
             .order_by(desc(HackerNewsTopStoryComment.parsed_time))
             .all()
         )
+        HackerNewsTopStory.session.close()
+        HackerNewsTopStoryComment.session.close()
         return make_response(jsonify(comments_schema.dump(comments)), 200)
 
     def post(cls, story_id):
@@ -186,16 +191,18 @@ class HackerNewsTopStoryCommentsResource(Resource):
             incoming_story = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNewsTopStory.query.filter(
-            HackerNewsTopStory.hn_id == incoming_story["story_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Story not found", "code": 404}), 404
-            )
         try:
             incoming_comment = add_comment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        story = HackerNewsTopStory.query.filter(
+            HackerNewsTopStory.hn_id == incoming_story["story_id"]
+        ).first()
+        if not story:
+            HackerNewsTopStory.session.close()
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
         incoming_comment["dead"] = False
         incoming_comment["deleted"] = False
         incoming_comment["descendants"] = 0
@@ -208,8 +215,9 @@ class HackerNewsTopStoryCommentsResource(Resource):
             datetime.now(), "%Y-%m-%d %H:%M:%S.%f"
         )[:-3]
         comment_data = HackerNewsTopStoryComment(**incoming_comment)
-        Base.session.add(comment_data)
-        Base.session.commit()
+        HackerNewsTopStoryComment.session.add(comment_data)
+        HackerNewsTopStoryComment.session.commit()
+        HackerNewsTopStory.session.close()
         return make_response(jsonify(
             {
                 "message": "Comment added",
@@ -236,22 +244,26 @@ class HackerNewsTopStoryCommentResource(Resource):
             incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNewsTopStory.query.filter(
-            HackerNewsTopStory.hn_id == incoming_story["story_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Story not found", "code": 404}), 404
-            )
-        if not HackerNewsTopStoryComment.query.filter(
-            HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Comment not found", "code": 404}), 404
-            )
         try:
             incoming_comment = add_comment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        story = HackerNewsTopStory.query.filter(
+            HackerNewsTopStory.hn_id == incoming_story["story_id"]
+        ).first()
+        comment = HackerNewsTopStoryComment.query.filter(
+            HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
+        ).first()
+        if not story:
+            HackerNewsTopStory.session.close()
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
+        if not comment:
+            HackerNewsTopStoryComment.session.close()
+            return make_response(
+                jsonify({"message": "Comment not found", "code": 404}), 404
+            )
         HackerNewsTopStoryComment.query.filter(
             HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
         ).update(
@@ -262,7 +274,9 @@ class HackerNewsTopStoryCommentResource(Resource):
                 "text": incoming_comment["text"],
             }
         )
-        Base.session.commit()
+        HackerNewsTopStoryComment.session.commit()
+        HackerNewsTopStoryComment.session.close()
+        HackerNewsTopStory.session.close()
         return make_response(jsonify(
             {
                 "message": "Comment updated",
@@ -287,26 +301,27 @@ class HackerNewsTopStoryCommentResource(Resource):
             incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
-        if not HackerNewsTopStory.query.filter(
+        story = HackerNewsTopStory.query.filter(
             HackerNewsTopStory.hn_id == incoming_story["story_id"]
-        ).first():
+        ).first()
+        comment = HackerNewsTopStoryComment.query.filter(
+            HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
+        ).first()
+        if not story:
+            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        if not HackerNewsTopStoryComment.query.filter(
-            HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
-        ).first():
+        if not comment:
+            HackerNewsTopStoryComment.session.close()
             return make_response(
                 jsonify({"message": "Comment not found", "code": 404}), 404
             )
-        try:
-            incoming_comment = add_comment_schema.load(request.get_json())
-        except ValidationError as err:
-            return err.messages, 400
         HackerNewsTopStoryComment.query.filter(
             HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
         ).delete()
-        Base.session.commit()
+        HackerNewsTopStoryComment.session.commit()
+        HackerNewsTopStory.session.close()
         return make_response(jsonify(
             {
                 "message": "Comment deleted",

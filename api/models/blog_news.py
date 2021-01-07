@@ -39,7 +39,8 @@ class BlogNewsStory(Base):
         "BlogNewsStoryComment",
         backref="blog_news_story",
         order_by="desc(BlogNewsStoryComment.id)",
-        cascade="all,delete"
+        cascade="all,delete",
+        lazy='subquery'
     )
     origin = Column(String)
 
