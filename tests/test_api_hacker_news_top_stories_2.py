@@ -260,8 +260,8 @@ def test_api_hackernews_post_topstories_comments_invalid_story_id(client):
     response = json.loads(response.data)
     assert (
         {
-            "code": 404,
-            "message": "Story not found"
+            '_schema': ['Invalid input type.'],
+
         }
     ) == response
 
