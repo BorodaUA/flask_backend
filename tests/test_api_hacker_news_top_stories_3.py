@@ -256,35 +256,6 @@ def test_hackernews_patch_topstories_comments_required_fields_valid(client):
     ) == response
 
 
-def test_api_hackernews_delete_topstories_comments_invalid_story_id(client):
-    """
-    test DELETE /api/hackernews/topstories/<story_id>/comments
-    with invalid <story_id>, and invalid <comment_id>
-    """
-    insert_in_table(
-        insert_data=test_row,
-        db_address=os.environ.get('TEST_HACKER_NEWS_DATABASE_URI'),
-        table_name="hacker_news_top_story"
-    )
-    response = client.delete(
-        "/api/hackernews/topstories/111222333/comments/111222333",
-        data=json.dumps(
-            {
-                'by': 'test_bob_2',
-                'text': 'delete tests text'
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            "code": 404,
-            "message": "Story not found"
-        }
-    ) == response
-
-
 def test_api_hackernews_delete_topstories_comments_valid_story_id(client):
     """
     test DELETE /api/hackernews/topstories/<story_id>/comments
@@ -470,5 +441,28 @@ def test_hackernews_delete_topstories_comments_valid_2_times(client):
         {
             "code": 404,
             "message": "Comment not found"
+        }
+    ) == response
+
+
+def test_api_hackernews_delete_topstories_comments_invalid_story_id(client):
+    """
+    test DELETE /api/hackernews/topstories/<story_id>/comments/<comment_id>
+    with invalid <story_id>, and valid <comment_id>
+    """
+    insert_in_table(
+        insert_data=test_row,
+        db_address=os.environ.get('TEST_HACKER_NEWS_DATABASE_URI'),
+        table_name="hacker_news_top_story"
+    )
+    response = client.delete(
+        f"/api/hackernews/topstories/111222333/comments/"
+        f"{test_comment_row['id']}",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            "code": 404,
+            "message": "Story not found"
         }
     ) == response
