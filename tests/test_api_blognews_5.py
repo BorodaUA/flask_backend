@@ -165,6 +165,13 @@ def test_bn_comment_patch_invalid_story_id_invalid_comment_id(client):
     ) == response
     response = client.patch(
         "/api/blognews/111222333/comments/111222333",
+        data=json.dumps(
+            {
+                "by": 'test_bob_2',
+                "text": 'updated comment text',
+            }
+        ),
+        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
