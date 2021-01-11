@@ -337,10 +337,10 @@ def test_api_hn_delete_newstories_comments_story_id_not_int(client):
     assert error_response == response.data
 
 
-def test_api_hn_delete_newstories_comments_no_required_fields(client):
+def test_api_hn_delete_newstories_comments_comment_id_not_int(client):
     """
-    test DELETE /api/hackernews/newstories/<story_id>/comments
-    with valid <story_id>, valid <comment_id> and no required fields.
+    test DELETE /api/hackernews/newstories/<story_id>/comments/<comment_id>
+    with valid <story_id>, <comment_id> not integer
     """
     insert_in_table(
         insert_data=test_row,
@@ -354,17 +354,17 @@ def test_api_hn_delete_newstories_comments_no_required_fields(client):
     )
     response = client.delete(
         f"/api/hackernews/newstories/{test_row['hn_id']}/"
-        f"comments/{test_comment_row['id']}",
-        data=json.dumps({}),
-        content_type="application/json",
+        f"comments/11aa!!&(",
     )
-    response = json.loads(response.data)
-    assert (
-        {
-            'by': ['Missing data for required field.'],
-            'text': ['Missing data for required field.']
-        }
-    ) == response
+    error_response = (
+        b'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n'
+        b'<title>404 Not Found</title>\n'
+        b'<h1>Not Found</h1>\n'
+        b'<p>The requested URL was not found on the server. '
+        b'If you entered the URL manually please check your '
+        b'spelling and try again.</p>\n'
+    )
+    assert error_response == response.data
 
 
 def test_api_hn_delete_newstories_comments_required_fields_empty(client):
