@@ -247,6 +247,13 @@ def test_api_hackernews_post_newstories_comments_invalid_story_id(client):
     )
     response = client.post(
         "/api/hackernews/newstories/123456789/comments",
+        data=json.dumps(
+            {
+                'by': 'test_bob_2',
+                'text': 'test bob_2 comment'
+            }
+        ),
+        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
