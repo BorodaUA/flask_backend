@@ -310,7 +310,17 @@ def test_blognews_patch_story_id_not_in_db(client):
             'message': 'Story added'
         }
     ) == response
-    response = client.patch("/api/blognews/111222333")
+    response = client.patch(
+        "/api/blognews/111222333",
+        data=json.dumps(
+            {
+                'url': 'https://www.google.com/',
+                'text': 'text from test',
+                'title': 'title from test',
+            }
+        ),
+        content_type="application/json",
+    )
     response = json.loads(response.data)
     assert (
         {
