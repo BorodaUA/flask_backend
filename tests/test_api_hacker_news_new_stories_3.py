@@ -285,9 +285,9 @@ def test_api_hn_delete_newstories_comments_invalid_story_id(client):
     ) == response
 
 
-def test_api_hn_delete_newstories_comments_valid_story_id(client):
+def test_api_hn_delete_newstories_comments_invalid_comment_id(client):
     """
-    test DELETE /api/hackernews/newstories/<story_id>/comments
+    test DELETE /api/hackernews/newstories/<story_id>/comments/<comment_id>
     with valid <story_id>, and invalid <comment_id>
     """
     insert_in_table(
@@ -297,13 +297,6 @@ def test_api_hn_delete_newstories_comments_valid_story_id(client):
     )
     response = client.delete(
         f"/api/hackernews/newstories/{test_row['hn_id']}/comments/111222333",
-        data=json.dumps(
-            {
-                'by': 'test_bob_2',
-                'text': 'text from delete test'
-            }
-        ),
-        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
