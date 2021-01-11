@@ -367,41 +367,6 @@ def test_api_hn_delete_newstories_comments_comment_id_not_int(client):
     assert error_response == response.data
 
 
-def test_api_hn_delete_newstories_comments_required_fields_empty(client):
-    """
-    test DELETE /api/hackernews/newstories/<story_id>/comments
-    with valid <story_id>, valid <comment_id> and required fields are empty.
-    """
-    insert_in_table(
-        insert_data=test_row,
-        db_address=os.environ.get('TEST_HACKER_NEWS_DATABASE_URI'),
-        table_name="hacker_news_new_story"
-    )
-    insert_in_table(
-        insert_data=test_comment_row,
-        db_address=os.environ.get('TEST_HACKER_NEWS_DATABASE_URI'),
-        table_name="hacker_news_new_story_comment"
-    )
-    response = client.delete(
-        f"/api/hackernews/newstories/{test_row['hn_id']}/"
-        f"comments/{test_comment_row['id']}",
-        data=json.dumps(
-            {
-                'by': '',
-                'text': ''
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'by': ['Shorter than minimum length 1.'],
-            'text': ['Shorter than minimum length 1.']
-        }
-    ) == response
-
-
 def test_api_hn__delete_newstories_comments_valid_data(client):
     """
     test DELETE /api/hackernews/newstories/<story_id>/comments/<comment_id>
@@ -426,5 +391,44 @@ def test_api_hn__delete_newstories_comments_valid_data(client):
         {
             'code': 200,
             'message': 'Comment deleted'
+        }
+    ) == response
+
+
+def test_api_hn_delete_newstories_comments_valid_data_2_times(client):
+    """
+    test DELETE /api/hackernews/newstories/<story_id>/comments/<comment_id>
+    with valid <story_id>, valid <comment_id>, 2 times in a row
+    """
+    insert_in_table(
+        insert_data=test_row,
+        db_address=os.environ.get('TEST_HACKER_NEWS_DATABASE_URI'),
+        table_name="hacker_news_new_story"
+    )
+    insert_in_table(
+        insert_data=test_comment_row,
+        db_address=os.environ.get('TEST_HACKER_NEWS_DATABASE_URI'),
+        table_name="hacker_news_new_story_comment"
+    )
+    response = client.delete(
+        f"/api/hackernews/newstories/{test_row['hn_id']}/"
+        f"comments/{test_comment_row['id']}",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 200,
+            'message': 'Comment deleted'
+        }
+    ) == response
+    response = client.delete(
+        f"/api/hackernews/newstories/{test_row['hn_id']}/"
+        f"comments/{test_comment_row['id']}",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            "code": 404,
+            "message": "Comment not found"
         }
     ) == response
