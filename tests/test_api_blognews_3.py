@@ -259,6 +259,13 @@ def test_blognews_comments_post_invalid_story_id(client):
     ) == response
     response = client.post(
         "/api/blognews/111222333/comments",
+        data=json.dumps(
+            {
+                'by': 'test_bob_2',
+                'text': 'test comment text',
+            }
+        ),
+        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
