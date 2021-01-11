@@ -402,10 +402,10 @@ def test_api_hn_delete_newstories_comments_required_fields_empty(client):
     ) == response
 
 
-def test_api_hn__delete_newstories_comments_required_fields_valid(client):
+def test_api_hn__delete_newstories_comments_valid_data(client):
     """
-    test DELETE /api/hackernews/newstories/<story_id>/comments
-    with valid <story_id>, valid <comment_id> and required fields are valid.
+    test DELETE /api/hackernews/newstories/<story_id>/comments/<comment_id>
+    with valid <story_id>, valid <comment_id>
     """
     insert_in_table(
         insert_data=test_row,
@@ -420,13 +420,6 @@ def test_api_hn__delete_newstories_comments_required_fields_valid(client):
     response = client.delete(
         f"/api/hackernews/newstories/{test_row['hn_id']}/"
         f"comments/{test_comment_row['id']}",
-        data=json.dumps(
-            {
-                'by': "localhost",
-                'text': 'changed text from the test.'
-            }
-        ),
-        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
