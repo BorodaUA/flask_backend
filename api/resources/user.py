@@ -3,7 +3,6 @@ from flask_restful import Resource
 from api.models.user import UserModel, Base
 from api.models.blog_news import BlogNewsStory
 from api.schemas.user import (
-    UserUuidSchema,
     UserSchema,
     UserSigninSchema,
     UserPasswordUpdateSchema,
@@ -21,7 +20,6 @@ from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
 
-user_uuid_schema = UserUuidSchema()
 user_register_schema = UserSchema()
 users_schema = UserSchema(many=True)
 user_signin_schema = UserSigninSchema()
@@ -109,18 +107,18 @@ class UsersResource(Resource):
 
 class UserResource(Resource):
     @classmethod
-    def get(cls, user_uuid):
+    def get(cls, username):
         """
-        Getting GET requests on the '/api/users/<user_uuid>' endpoint, and
+        Getting GET requests on the '/api/users/<username>' endpoint, and
         returning the user from the database.
         """
         try:
-            user_uuid = {"user_uuid": user_uuid}
-            incoming_user_uuid = user_uuid_schema.load(user_uuid)
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
         except ValidationError as err:
             return err.messages, 400
         user = UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+            UserModel.username == incoming_username['username']
         ).first()
         if not user:
             UserModel.session.close()
@@ -133,14 +131,14 @@ class UserResource(Resource):
         )
 
     @classmethod
-    def patch(cls, user_uuid):
+    def patch(cls, username):
         """
-        Getting PATCH requests on the '/api/users/<user_uuid>' endpoint, and
+        Getting PATCH requests on the '/api/users/<username>' endpoint, and
         updating the user data in the database.
         """
         try:
-            user_uuid = {"user_uuid": user_uuid}
-            incoming_user_uuid = user_uuid_schema.load(user_uuid)
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
         except ValidationError as err:
             return err.messages, 400
         try:
@@ -148,7 +146,7 @@ class UserResource(Resource):
         except ValidationError as err:
             return err.messages, 400
         user = UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+            UserModel.username == incoming_username['username']
         ).first()
         if not user:
             UserModel.session.close()
@@ -156,7 +154,7 @@ class UserResource(Resource):
                 jsonify({"message": "user not found", "code": 404}), 404
             )
         UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+            UserModel.user_uuid == incoming_username['username']
         ).update(
             {
                 "password": argon2.hash(incoming_user["password"])
@@ -173,18 +171,18 @@ class UserResource(Resource):
         )
 
     @classmethod
-    def delete(cls, user_uuid):
+    def delete(cls, username):
         """
         Getting DELETE requests on the '/api/users/<user_uuid>' endpoint, and
         deleting the user in the database.
         """
         try:
-            user_uuid = {"user_uuid": user_uuid}
-            incoming_user_uuid = user_uuid_schema.load(user_uuid)
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
         except ValidationError as err:
             return err.messages, 400
         user = UserModel.query.filter(
-            UserModel.user_uuid == incoming_user_uuid['user_uuid']
+            UserModel.username == incoming_username['username']
         ).first()
         if not user:
             UserModel.session.close()

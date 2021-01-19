@@ -10,15 +10,6 @@ class UsernameSchema(Schema):
     )
 
 
-class UserUuidSchema(Schema):
-    user_uuid = fields.Str(
-        required=True,
-        validate=[
-            validate.Length(min=2, max=40)
-        ]
-    )
-
-
 class UserPasswordUpdateSchema(Schema):
     password = fields.Str(
         required=True,
