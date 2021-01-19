@@ -157,15 +157,8 @@ def test_blognews_get_story_id_not_integer(client):
         }
     ) == response
     response = client.get("/api/blognews/not_integer")
-    error_response = (
-        b'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n'
-        b'<title>404 Not Found</title>\n'
-        b'<h1>Not Found</h1>\n'
-        b'<p>The requested URL was not found on the server. '
-        b'If you entered the URL manually please check your '
-        b'spelling and try again.</p>\n'
-    )
-    assert error_response == response.data
+    response = json.loads(response.data)
+    assert {"story_id": ["Not a valid integer."]} == response
 
 
 def test_blognews_get_story_id_not_in_db(client):
@@ -289,15 +282,8 @@ def test_blognews_patch_story_id_not_integer(client):
         }
     ) == response
     response = client.patch("/api/blognews/not_integer")
-    error_response = (
-        b'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n'
-        b'<title>404 Not Found</title>\n'
-        b'<h1>Not Found</h1>\n'
-        b'<p>The requested URL was not found on the server. '
-        b'If you entered the URL manually please check your '
-        b'spelling and try again.</p>\n'
-    )
-    assert error_response == response.data
+    response = json.loads(response.data)
+    assert {"story_id": ["Not a valid integer."]} == response
 
 
 def test_blognews_patch_story_id_not_in_db(client):
@@ -324,7 +310,17 @@ def test_blognews_patch_story_id_not_in_db(client):
             'message': 'Story added'
         }
     ) == response
-    response = client.patch("/api/blognews/111222333")
+    response = client.patch(
+        "/api/blognews/111222333",
+        data=json.dumps(
+            {
+                'url': 'https://www.google.com/',
+                'text': 'text from test',
+                'title': 'title from test',
+            }
+        ),
+        content_type="application/json",
+    )
     response = json.loads(response.data)
     assert (
         {

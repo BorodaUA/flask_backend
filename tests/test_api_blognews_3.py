@@ -161,15 +161,8 @@ def test_blognews_delete_story_id_not_integer(client):
         }
     ) == response
     response = client.delete("/api/blognews/not_integer")
-    error_response = (
-        b'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n'
-        b'<title>404 Not Found</title>\n'
-        b'<h1>Not Found</h1>\n'
-        b'<p>The requested URL was not found on the server. '
-        b'If you entered the URL manually please check your '
-        b'spelling and try again.</p>\n'
-    )
-    assert error_response == response.data
+    response = json.loads(response.data)
+    assert {"story_id": ["Not a valid integer."]} == response
 
 
 def test_blognews_delete_story_id_not_in_db(client):
@@ -266,6 +259,13 @@ def test_blognews_comments_post_invalid_story_id(client):
     ) == response
     response = client.post(
         "/api/blognews/111222333/comments",
+        data=json.dumps(
+            {
+                'by': 'test_bob_2',
+                'text': 'test comment text',
+            }
+        ),
+        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (

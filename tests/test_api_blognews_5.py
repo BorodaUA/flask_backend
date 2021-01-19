@@ -124,7 +124,7 @@ def test_bn_comment_patch_story_id_comment_id_not_integer(client):
 
 def test_bn_comment_patch_invalid_story_id_invalid_comment_id(client):
     """
-    test PATCH /api/blognews/<story_id>/comments endpoint
+    test PATCH /api/blognews/<story_id>/comments/<comment_id> endpoint
     with invalid story_id, invalid comment_id
     """
     response = client.post(
@@ -165,6 +165,13 @@ def test_bn_comment_patch_invalid_story_id_invalid_comment_id(client):
     ) == response
     response = client.patch(
         "/api/blognews/111222333/comments/111222333",
+        data=json.dumps(
+            {
+                "by": 'test_bob_2',
+                "text": 'updated comment text',
+            }
+        ),
+        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
@@ -177,7 +184,7 @@ def test_bn_comment_patch_invalid_story_id_invalid_comment_id(client):
 
 def test_bn_comment_patch_valid_story_id_invalid_comment_id(client):
     """
-    test PATCH /api/blognews/<story_id>/comments endpoint
+    test PATCH /api/blognews/<story_id>/comments/<comment_id> endpoint
     with valid story_id, invalid comment_id
     """
     response = client.post(
@@ -218,6 +225,13 @@ def test_bn_comment_patch_valid_story_id_invalid_comment_id(client):
     ) == response
     response = client.patch(
         "/api/blognews/1/comments/111222333",
+        data=json.dumps(
+            {
+                "by": 'test_bob_2',
+                "text": 'updated comment text',
+            }
+        ),
+        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
