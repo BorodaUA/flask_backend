@@ -1,7 +1,7 @@
 from flask import request, jsonify, make_response
 from flask_restful import Resource
 from api.models.user import UserModel, Base
-from api.models.blog_news import BlogNewsStory
+from api.models.blog_news import BlogNewsStory, BlogNewsStoryComment
 from api.schemas.user import (
     UserSchema,
     UserSigninSchema,
@@ -379,3 +379,74 @@ class UserStory(Resource):
             )
         BlogNewsStory.session.close()
         return jsonify(blognews_story_schema.dump(user_story))
+
+
+class UserComments(Resource):
+    @classmethod
+    def get(cls, username):
+        """
+        Getting GET requests on the
+        '/api/users/<username>/comments/?pagenumber=N' endpoint,
+        and returning up to 500 user' comments
+        """
+        try:
+            pagenumber = {"pagenumber": request.args.get("pagenumber")}
+            incoming_pagination = news_pagination_schema.load(pagenumber)
+        except ValidationError as err:
+            return err.messages, 400
+        if incoming_pagination["pagenumber"] <= 0:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "pagenumber must be greater then 0",
+                        "code": 400
+                    }
+                ),
+                400,
+            )
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        users_comments = BlogNewsStoryComment.query.filter(
+            BlogNewsStoryComment.by == incoming_username['username']
+        ).all()
+        if not users_comments:
+            BlogNewsStoryComment.session.close()
+            return make_response(
+                jsonify(
+                    {'message': 'comments not found', 'code': 404}
+                ), 404
+            )
+        page = paginate(
+            BlogNewsStoryComment.query.filter(
+                BlogNewsStoryComment.by == incoming_username['username']
+            ).order_by(desc(BlogNewsStoryComment.time))
+            .limit(500)
+            .from_self(),
+            incoming_pagination["pagenumber"],
+            30,
+        )
+        result_page = {
+            "current_page": incoming_pagination["pagenumber"],
+            "has_next": page.has_next,
+            "has_previous": page.has_previous,
+            "items": blognews_stories_schema.dump(page.items),
+            "next_page": page.next_page,
+            "previous_page": page.previous_page,
+            "pages": page.pages,
+            "total": page.total,
+        }
+        if incoming_pagination["pagenumber"] > result_page["pages"]:
+            BlogNewsStoryComment.session.close()
+            return make_response(
+                jsonify(
+                    {
+                        "message": "Pagination page not found",
+                        "code": 404
+                    }
+                ), 404,
+            )
+        BlogNewsStoryComment.session.close()
+        return jsonify(result_page)

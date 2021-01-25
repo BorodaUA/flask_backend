@@ -5,7 +5,8 @@ from .resources.user import (
     UserResource,
     UserLogin,
     UserStories,
-    UserStory
+    UserStory,
+    UserComments,
 )
 from .resources.hacker_news_top_story import (
     HackerNewsTopStoriesResourse,
@@ -53,7 +54,10 @@ api.add_resource(
 api.add_resource(
     UserStory, "/users/<username>/stories/<story_id>",
     methods=["GET"]
-
+)
+api.add_resource(
+    UserComments, "/users/<username>/comments/",
+    methods=["GET"]
 )
 ###
 api.add_resource(
