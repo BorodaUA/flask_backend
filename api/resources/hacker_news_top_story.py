@@ -292,27 +292,25 @@ class HackerNewsTopStoryCommentResource(Resource):
             incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
-        story = HackerNewsTopStory.query.filter(
+        db_session = g.hacker_news_session
+        story = db_session.query(HackerNewsTopStory).filter(
             HackerNewsTopStory.hn_id == incoming_story["story_id"]
         ).first()
-        comment = HackerNewsTopStoryComment.query.filter(
+        comment = db_session.query(HackerNewsTopStoryComment).filter(
             HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
         ).first()
         if not story:
-            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
         if not comment:
-            HackerNewsTopStoryComment.session.close()
             return make_response(
                 jsonify({"message": "Comment not found", "code": 404}), 404
             )
-        HackerNewsTopStoryComment.query.filter(
+        db_session.query(HackerNewsTopStoryComment).filter(
             HackerNewsTopStoryComment.id == incoming_comment_id["comment_id"]
         ).delete()
-        HackerNewsTopStoryComment.session.commit()
-        HackerNewsTopStory.session.close()
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Comment deleted",
