@@ -129,19 +129,18 @@ class HackerNewsTopStoryResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
+        db_session = g.hacker_news_session
         story = (
-            HackerNewsTopStory.query.filter(
+            db_session.query(HackerNewsTopStory).filter(
                 HackerNewsTopStory.hn_id == incoming_story_id["story_id"],
             )
             .order_by(HackerNewsTopStory.parsed_time)
             .first()
         )
         if not story:
-            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        HackerNewsTopStory.session.close()
         return make_response(jsonify(story_schema.dump(story)), 200)
 
 
