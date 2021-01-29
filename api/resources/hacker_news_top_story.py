@@ -157,24 +157,22 @@ class HackerNewsTopStoryCommentsResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        story = HackerNewsTopStory.query.filter(
+        db_session = g.hacker_news_session
+        story = db_session.query(HackerNewsTopStory).filter(
             HackerNewsTopStory.hn_id == incoming_story_id["story_id"]
         ).first()
         if not story:
-            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
         comments = (
-            HackerNewsTopStoryComment.query.filter(
+            db_session.query(HackerNewsTopStoryComment).filter(
                 HackerNewsTopStoryComment.parent ==
                 incoming_story_id["story_id"]
             )
             .order_by(desc(HackerNewsTopStoryComment.parsed_time))
             .all()
         )
-        HackerNewsTopStory.session.close()
-        HackerNewsTopStoryComment.session.close()
         return make_response(jsonify(comments_schema.dump(comments)), 200)
 
     def post(cls, story_id):
