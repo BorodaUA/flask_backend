@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, g
 from flask_restful import Resource
 from api.models.hacker_news import (
     HackerNewsTopStory,
@@ -73,9 +73,9 @@ class HackerNewsTopStoriesResourse(Resource):
                     ),
                 400,
             )
-        stories = HackerNewsTopStory.query.all()
+        db_session = g.hacker_news_session
+        stories = db_session.query(HackerNewsTopStory).all()
         if not stories:
-            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -86,7 +86,7 @@ class HackerNewsTopStoriesResourse(Resource):
                 404,
             )
         page = paginate(
-            HackerNewsTopStory.query.order_by(desc(
+            db_session.query(HackerNewsTopStory).order_by(desc(
                 HackerNewsTopStory.parsed_time
             ))
             .limit(500)
@@ -105,7 +105,6 @@ class HackerNewsTopStoriesResourse(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
-            HackerNewsTopStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -114,7 +113,6 @@ class HackerNewsTopStoriesResourse(Resource):
                     }
                 ), 404,
             )
-        HackerNewsTopStory.session.close()
         return jsonify(result_page)
 
 

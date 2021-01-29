@@ -1,5 +1,5 @@
 from flask import Flask, g
-from db import flask_backend_session
+from db import flask_backend_session, hacker_news_session
 from config import config
 
 
@@ -12,6 +12,7 @@ def create_app(config_name):
     @app.before_request
     def pass_session():
         g.flask_backend_session = flask_backend_session
+        g.hacker_news_session = hacker_news_session
 
     with app.app_context():
         from api.bp import api_bp
@@ -20,5 +21,6 @@ def create_app(config_name):
     @app.teardown_appcontext
     def shutdown_session(exception=None):
         g.flask_backend_session.remove()
+        g.hacker_news_session.remove()
 
     return app

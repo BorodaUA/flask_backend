@@ -15,3 +15,15 @@ flask_backend_session = scoped_session(
     )
 )
 flask_backend_Base = declarative_base()
+#
+hacker_news_engine = create_engine(
+    os.environ.get("HACKER_NEWS_DATABASE_URI")
+)
+hacker_news_session = scoped_session(
+    sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=hacker_news_engine,
+    )
+)
+hacker_news_Base = declarative_base()
