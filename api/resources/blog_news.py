@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, g
 from flask_restful import Resource
 from api.models.blog_news import BlogNewsStory, BlogNewsStoryComment
 from api.schemas.blog_news import (
@@ -11,7 +11,6 @@ from api.schemas.blog_news import (
 from sqlalchemy import desc
 from sqlalchemy_pagination import paginate
 from marshmallow import ValidationError
-from api.models import blog_news
 import time
 
 news_pagination_schema = NewsPaginationSchema()
@@ -105,9 +104,9 @@ class BlogNewsStoriesResource(Resource):
                 ),
                 400,
             )
-        blognews_stories = blog_news.BlogNewsStory.query.all()
+        db_session = g.flask_backend_session
+        blognews_stories = db_session.query(BlogNewsStory).all()
         if not blognews_stories:
-            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -117,7 +116,9 @@ class BlogNewsStoriesResource(Resource):
                 ), 404,
             )
         page = paginate(
-            BlogNewsStory.query.order_by(desc(BlogNewsStory.time))
+            db_session.query(
+                BlogNewsStory
+            ).order_by(desc(BlogNewsStory.time))
             .limit(500)
             .from_self(),
             incoming_pagination["pagenumber"],
@@ -134,7 +135,6 @@ class BlogNewsStoriesResource(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
-            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -143,7 +143,6 @@ class BlogNewsStoriesResource(Resource):
                     }
                 ), 404,
             )
-        BlogNewsStory.session.close()
         return jsonify(result_page)
 
     @classmethod

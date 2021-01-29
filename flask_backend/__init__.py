@@ -1,8 +1,6 @@
-from flask import Flask
-from sqlalchemy.orm import scoped_session, sessionmaker
-from db.db import db
+from flask import Flask, g
+from db import flask_backend_session
 from config import config
-from api.models import user, hacker_news, blog_news
 
 
 def create_app(config_name):
@@ -10,39 +8,17 @@ def create_app(config_name):
     ###
     app.config.from_object(config[config_name])
     ###
-    if not app.config["TESTING"]:
-        db.init_app(app)
 
-        @app.before_first_request
-        def create_tables():
-            user.Base.session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=db.get_engine(bind="flask_backend"),
-                )
-            )
-            user.Base.query = user.Base.session.query_property()
-            #
-            hacker_news.Base.session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=db.get_engine(bind="hacker_news"),
-                )
-            )
-            hacker_news.Base.query = hacker_news.Base.session.query_property()
-            #
-            blog_news.Base.session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=db.get_engine(bind="flask_backend"),
-                )
-            )
-            blog_news.Base.query = blog_news.Base.session.query_property()
+    @app.before_request
+    def pass_session():
+        g.flask_backend_session = flask_backend_session
+
     with app.app_context():
         from api.bp import api_bp
         app.register_blueprint(api_bp)
+
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        g.flask_backend_session.remove()
 
     return app
