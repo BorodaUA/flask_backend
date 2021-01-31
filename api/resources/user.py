@@ -399,18 +399,18 @@ class UserComments(Resource):
             incoming_username = username_schema.load(username)
         except ValidationError as err:
             return err.messages, 400
-        users_comments = BlogNewsStoryComment.query.filter(
+        db_session = g.flask_backend_session
+        users_comments = db_session.query(BlogNewsStoryComment).filter(
             BlogNewsStoryComment.by == incoming_username['username']
         ).all()
         if not users_comments:
-            BlogNewsStoryComment.session.close()
             return make_response(
                 jsonify(
                     {'message': 'comments not found', 'code': 404}
                 ), 404
             )
         page = paginate(
-            BlogNewsStoryComment.query.filter(
+            db_session.query(BlogNewsStoryComment).filter(
                 BlogNewsStoryComment.by == incoming_username['username']
             ).order_by(desc(BlogNewsStoryComment.time))
             .limit(500)
@@ -429,7 +429,6 @@ class UserComments(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
-            BlogNewsStoryComment.session.close()
             return make_response(
                 jsonify(
                     {
@@ -438,5 +437,4 @@ class UserComments(Resource):
                     }
                 ), 404,
             )
-        BlogNewsStoryComment.session.close()
         return jsonify(result_page)
