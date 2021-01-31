@@ -56,14 +56,14 @@ class UsersResource(Resource):
             user = user_register_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        user_username = UserModel.query.filter_by(
+        db_session = g.flask_backend_session
+        user_username = db_session.query(UserModel).filter_by(
             username=user["username"]
         ).first()
-        user_email = UserModel.query.filter_by(
+        user_email = db_session.query(UserModel).filter_by(
             email_address=user["email_address"]
         ).first()
         if user_username:
-            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
@@ -72,7 +72,6 @@ class UsersResource(Resource):
                 ), 400
             )
         if user_email:
-            UserModel.session.close()
             return make_response(
                 jsonify({"message": "User with this email already exist"}), 400
             )
@@ -83,8 +82,8 @@ class UsersResource(Resource):
             try:
                 user["user_uuid"] = str(uuid4())
                 user["origin"] = "my_blog"
-                UserModel.session.add(UserModel(**user))
-                UserModel.session.commit()
+                db_session.add(UserModel(**user))
+                db_session.commit()
                 return make_response(
                     jsonify(
                         {
@@ -101,7 +100,7 @@ class UsersResource(Resource):
                 )
                 flag = False
             except IntegrityError:
-                Base.session.rollback()
+                db_session.rollback()
 
 
 class UserResource(Resource):
