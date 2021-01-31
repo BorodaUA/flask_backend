@@ -1,7 +1,5 @@
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Boolean
-
-Base = declarative_base()
+from db import flask_backend_Base as Base
 
 
 class UserModel(Base):

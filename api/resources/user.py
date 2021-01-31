@@ -1,6 +1,6 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, g
 from flask_restful import Resource
-from api.models.user import UserModel, Base
+from api.models.user import UserModel
 from api.models.blog_news import BlogNewsStory, BlogNewsStoryComment
 from api.schemas.user import (
     UserSchema,
@@ -38,13 +38,12 @@ class UsersResource(Resource):
         Getting GET requests on the '/api/users' endpoint, and returning a list
         with all users in database.
         """
-        users = UserModel.query.all()
+        db_session = g.flask_backend_session
+        users = db_session.query(UserModel).all()
         if not users:
-            UserModel.session.close()
             return make_response(
                 jsonify({"message": "users not found", "code": 404}), 404
             )
-        UserModel.session.close()
         return users_schema.dump(users)
 
     @classmethod
