@@ -248,15 +248,15 @@ class BlogNewsStoryResource(Resource):
             story = edit_story_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        blognews_story = BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        blognews_story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
         ).first()
         if not blognews_story:
-            BlogNewsStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        BlogNewsStory.query.filter(
+        db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
         ).update(
             {
@@ -266,7 +266,7 @@ class BlogNewsStoryResource(Resource):
                 "time": int(time.time()),
             }
         )
-        BlogNewsStory.session.commit()
+        db_session.commit()
         return make_response(
             jsonify({"message": "Story succesfully updated", "code": 200}), 200
         )
