@@ -297,18 +297,18 @@ class UserStories(Resource):
             incoming_username = username_schema.load(username)
         except ValidationError as err:
             return err.messages, 400
-        users_stories = BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        users_stories = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.by == incoming_username['username']
         ).all()
         if not users_stories:
-            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {'message': 'stories not found', 'code': 404}
                 ), 404
             )
         page = paginate(
-            BlogNewsStory.query.filter(
+            db_session.query(BlogNewsStory).filter(
                 BlogNewsStory.by == incoming_username['username']
             ).order_by(desc(BlogNewsStory.time))
             .limit(500)
@@ -327,7 +327,6 @@ class UserStories(Resource):
             "total": page.total,
         }
         if incoming_pagination["pagenumber"] > result_page["pages"]:
-            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {
@@ -336,7 +335,6 @@ class UserStories(Resource):
                     }
                 ), 404,
             )
-        BlogNewsStory.session.close()
         return jsonify(result_page)
 
 
