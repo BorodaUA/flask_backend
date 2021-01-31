@@ -155,6 +155,7 @@ class BlogNewsStoriesResource(Resource):
             story = add_story_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        db_session = g.flask_backend_session
         full_story = {
             "time": int(time.time()),
             "deleted": False,
@@ -172,8 +173,8 @@ class BlogNewsStoriesResource(Resource):
             "origin": "my_blog",
         }
         data = BlogNewsStory(**full_story)
-        BlogNewsStory.session.add(data)
-        BlogNewsStory.session.commit()
+        db_session.add(data)
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Story added",
