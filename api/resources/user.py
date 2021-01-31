@@ -356,19 +356,18 @@ class UserStory(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        user_story = BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        user_story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.by == incoming_username['username']
         ).filter(
             BlogNewsStory.id == incoming_story_id['story_id']
         ).first()
         if not user_story:
-            BlogNewsStory.session.close()
             return make_response(
                 jsonify(
                     {'message': 'story not found', 'code': 404}
                 ), 404
             )
-        BlogNewsStory.session.close()
         return jsonify(blognews_story_schema.dump(user_story))
 
 
