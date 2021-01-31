@@ -216,16 +216,16 @@ class BlogNewsStoryResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        story = BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
         ).first()
         if not story:
-            BlogNewsStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        BlogNewsStory.session.delete(story)
-        BlogNewsStory.session.commit()
+        db_session.delete(story)
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Story deleted",
