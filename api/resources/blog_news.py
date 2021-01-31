@@ -442,26 +442,30 @@ class BlogNewsStoryCommentResource(Resource):
             incoming_comment = add_comment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        story = BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
         ).first()
-        comment = BlogNewsStoryComment.query.filter(
+        comment = db_session.query(BlogNewsStoryComment).filter(
             BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
         ).first()
         if not story:
-            BlogNewsStory.session.close()
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
         if not comment:
-            BlogNewsStoryComment.session.close()
             return make_response(
                 jsonify({"message": "Comment not found", "code": 404}), 404
             )
-        BlogNewsStoryComment.query.filter(
+        db_session.query(BlogNewsStoryComment).filter(
             BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
-        ).update({"text": incoming_comment["text"], "time": int(time.time())})
-        BlogNewsStoryComment.session.commit()
+        ).update(
+            {
+                "text": incoming_comment["text"],
+                "time": int(time.time())
+            }
+        )
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Comment updated",
