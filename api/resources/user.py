@@ -170,7 +170,7 @@ class UserResource(Resource):
     @classmethod
     def delete(cls, username):
         """
-        Getting DELETE requests on the '/api/users/<user_uuid>' endpoint, and
+        Getting DELETE requests on the '/api/users/<username>' endpoint, and
         deleting the user in the database.
         """
         try:
@@ -178,16 +178,16 @@ class UserResource(Resource):
             incoming_username = username_schema.load(username)
         except ValidationError as err:
             return err.messages, 400
-        user = UserModel.query.filter(
+        db_session = g.flask_backend_session
+        user = db_session.query(UserModel).filter(
             UserModel.username == incoming_username['username']
         ).first()
         if not user:
-            UserModel.session.close()
             return make_response(
                 jsonify({"message": "user not found", "code": 404}), 404
             )
-        UserModel.session.delete(user)
-        UserModel.session.commit()
+        db_session.delete(user)
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "User deleted",
