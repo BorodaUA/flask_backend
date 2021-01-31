@@ -209,16 +209,16 @@ class UserLogin(Resource):
         except ValidationError as err:
             return err.messages, 400
         ###
-        db_user = UserModel.query.filter_by(
+        db_session = g.flask_backend_session
+        db_user = db_session.query(UserModel).filter_by(
             username=incoming_user["username"]
         ).first()
-        db_email_address = UserModel.query.filter_by(
+        db_email_address = db_session.query(UserModel).filter_by(
             email_address=incoming_user["email_address"]
         ).first()
         ###
         if db_user:
             if argon2.verify(incoming_user["password"], db_user.password):
-                UserModel.session.close()
                 return make_response(
                     jsonify(
                         {
@@ -230,7 +230,6 @@ class UserLogin(Resource):
                     ),
                     200,
                 )
-            UserModel.session.close()
             return make_response(
                 jsonify({"message": "Username or password Incorect!"}), 400
             )
@@ -239,7 +238,6 @@ class UserLogin(Resource):
                 incoming_user["password"],
                 db_email_address.password
             ):
-                UserModel.session.close()
                 return make_response(
                     jsonify(
                         {
@@ -254,7 +252,6 @@ class UserLogin(Resource):
                     ),
                     200,
                 )
-            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
@@ -263,7 +260,6 @@ class UserLogin(Resource):
                 ), 400
             )
         else:
-            UserModel.session.close()
             return make_response(
                 jsonify(
                     {
