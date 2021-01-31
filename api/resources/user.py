@@ -142,22 +142,22 @@ class UserResource(Resource):
             incoming_user = user_password_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        user = UserModel.query.filter(
+        db_session = g.flask_backend_session
+        user = db_session.query(UserModel).filter(
             UserModel.username == incoming_username['username']
         ).first()
         if not user:
-            UserModel.session.close()
             return make_response(
                 jsonify({"message": "user not found", "code": 404}), 404
             )
-        UserModel.query.filter(
+        db_session.query(UserModel).filter(
             UserModel.user_uuid == incoming_username['username']
         ).update(
             {
                 "password": argon2.hash(incoming_user["password"])
             }
         )
-        UserModel.session.commit()
+        db_session.commit()
         return make_response(
             jsonify(
                 {
