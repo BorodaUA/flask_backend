@@ -1,5 +1,5 @@
 from flask import Flask, g
-from db import flask_backend_session, hacker_news_session
+from db import create_session
 from config import config
 
 
@@ -8,6 +8,12 @@ def create_app(config_name):
     ###
     app.config.from_object(config[config_name])
     ###
+    flask_backend_session = create_session(
+            app.config['SQLALCHEMY_BINDS']['flask_backend']
+        )
+    hacker_news_session = create_session(
+            app.config['SQLALCHEMY_BINDS']['hacker_news']
+        )
 
     @app.before_request
     def pass_session():
@@ -20,7 +26,9 @@ def create_app(config_name):
 
     @app.teardown_appcontext
     def shutdown_session(exception=None):
-        g.flask_backend_session.remove()
-        g.hacker_news_session.remove()
+        if g.flask_backend_session:
+            g.flask_backend_session.remove()
+        if g.hacker_news_session:
+            g.hacker_news_session.remove()
 
     return app

@@ -8,6 +8,7 @@ class Config(object):
 
     SECRET_KEY = os.environ.get("SECRET_KEY") or "hard to guess string"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    POSTGRES_DATABASE_URI = os.environ.get("POSTGRES_DATABASE_URI")
 
 
 class DevelopmentConfig(Config):
