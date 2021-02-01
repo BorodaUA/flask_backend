@@ -49,6 +49,7 @@ class UserSigninSchema(Schema):
         required=True,
         validate=[
             validate.Length(min=3, max=256),
+            # validate.Regexp(regex=r"^[\b\w-]+$")
         ]
     )
     email_address = fields.Str(
@@ -59,6 +60,5 @@ class UserSigninSchema(Schema):
         required=True,
         validate=[
             validate.Length(min=6, max=32),
-            validate.Regexp(regex=r"^[\b\w-]+$")
         ]
     )
