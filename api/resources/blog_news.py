@@ -80,6 +80,26 @@ add_comment_schema = BlogNewsCommentSchema(
         "origin",
     ]
 )
+edit_comment_schema = BlogNewsCommentSchema(
+    exclude=[
+        "id",
+        "deleted",
+        "type",
+        'by',
+        "time",
+        # 'text',
+        "dead",
+        "parent",
+        "poll",
+        "kids",
+        "url",
+        "score",
+        "title",
+        "parts",
+        "descendants",
+        "origin",
+    ]
+)
 
 
 class BlogNewsStoriesResource(Resource):
@@ -439,7 +459,7 @@ class BlogNewsStoryCommentResource(Resource):
         except ValidationError as err:
             return err.messages, 400
         try:
-            incoming_comment = add_comment_schema.load(request.get_json())
+            incoming_comment = edit_comment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
         db_session = g.flask_backend_session
