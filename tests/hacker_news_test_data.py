@@ -11,6 +11,7 @@ def generate_test_data():
     fake_user['password'] = fake.password(
         length=random.randrange(6, 32)
     )
+    fake_user['text'] = fake.paragraphs(nb=3)
     return fake_user
 
 
@@ -39,4 +40,26 @@ test_row = {
     "title": generate_test_data()['residence'],
     "type": "story",
     "url": generate_test_data()['website'][0]
+}
+test_comment_row = {
+        "by": generate_test_data()['username'],
+        "dead": None,
+        "deleted": None,
+        "descendants": None,
+        "hn_id": "24611767",
+        "id": "125",
+        "kids": [
+            24614360,
+        ],
+        "origin": "hacker_news",
+        "parent": 24611558,
+        "parsed_time": "2020-09-28T14:18:18.589000",
+        "parts": None,
+        "poll": None,
+        "score": None,
+        "text": ' '.join(generate_test_data()['text']),
+        "time": 1601255009,
+        "title": None,
+        "type": "comment",
+        "url": None,
 }
