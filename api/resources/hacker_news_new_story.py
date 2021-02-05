@@ -47,6 +47,28 @@ add_comment_schema = HackerNewsStorySchema(
         "origin",
     ],
 )
+edit_comment_schema = HackerNewsStorySchema(
+    exclude=[
+        "id",
+        "hn_id",
+        "deleted",
+        "type",
+        'by',
+        "time",
+        # 'text',
+        "dead",
+        "parent",
+        "poll",
+        "kids",
+        'url',
+        "score",
+        'title',
+        "parts",
+        "descendants",
+        "comments",
+        "origin",
+    ],
+)
 
 
 class HackerNewsNewStoriesResource(Resource):
@@ -238,7 +260,7 @@ class HackerNewsNewStoryCommentResource(Resource):
         except ValidationError as err:
             return err.messages, 400
         try:
-            incoming_comment = add_comment_schema.load(request.get_json())
+            incoming_comment = edit_comment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
         db_session = g.hacker_news_session

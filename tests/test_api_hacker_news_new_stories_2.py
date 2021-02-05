@@ -276,7 +276,6 @@ def test_api_hn_patch_newstories_comments_invalid_story_id(client):
         "/api/hackernews/newstories/111222333/comments/111222333",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
                 'text': 'test bob_2 comment updated from test'
             }
         ),
@@ -301,7 +300,6 @@ def test_api_hn_patch_newstories_comments_valid_story_id(client):
         f"/api/hackernews/newstories/{test_data['hn_id']}/comments/111222333",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
                 'text': 'test bob_2 comment updated from test'
             }
         ),
@@ -351,7 +349,6 @@ def test_api_hn_patch_newstories_comments_no_required_fields(client):
     response = json.loads(response.data)
     assert (
         {
-            'by': ['Missing data for required field.'],
             'text': ['Missing data for required field.']
         }
     ) == response
