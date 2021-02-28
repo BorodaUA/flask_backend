@@ -1,8 +1,6 @@
-from flask import Flask
-from sqlalchemy.orm import scoped_session, sessionmaker
-from db.db import db
+from flask import Flask, g
+from db import create_session
 from config import config
-from api.models import user, hacker_news, blog_news
 
 
 def create_app(config_name):
@@ -10,39 +8,27 @@ def create_app(config_name):
     ###
     app.config.from_object(config[config_name])
     ###
-    if not app.config["TESTING"]:
-        db.init_app(app)
+    flask_backend_session = create_session(
+            app.config['SQLALCHEMY_BINDS']['flask_backend']
+        )
+    hacker_news_session = create_session(
+            app.config['SQLALCHEMY_BINDS']['hacker_news']
+        )
 
-        @app.before_first_request
-        def create_tables():
-            user.Base.session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=db.get_engine(bind="flask_backend"),
-                )
-            )
-            user.Base.query = user.Base.session.query_property()
-            #
-            hacker_news.Base.session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=db.get_engine(bind="hacker_news"),
-                )
-            )
-            hacker_news.Base.query = hacker_news.Base.session.query_property()
-            #
-            blog_news.Base.session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=db.get_engine(bind="flask_backend"),
-                )
-            )
-            blog_news.Base.query = blog_news.Base.session.query_property()
+    @app.before_request
+    def pass_session():
+        g.flask_backend_session = flask_backend_session
+        g.hacker_news_session = hacker_news_session
+
     with app.app_context():
         from api.bp import api_bp
         app.register_blueprint(api_bp)
+
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        if g.flask_backend_session:
+            g.flask_backend_session.remove()
+        if g.hacker_news_session:
+            g.hacker_news_session.remove()
 
     return app

@@ -3,11 +3,13 @@ import sys
 import pytest
 import json
 import logging
+from flask import g
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.exc import ProgrammingError, OperationalError
+from faker import Faker
+import random
 sys.path.append(os.getcwd())
-from flask_backend import create_app, db # noqa
+from flask_backend import create_app # noqa
 from api.models import blog_news # noqa
 
 # pytest -s -o log_cli=true -o log_level=DEBUG
@@ -15,37 +17,45 @@ from api.models import blog_news # noqa
 
 @pytest.fixture(scope='function')
 def client(request):
-    app = create_app("testing")
-    db.init_app(app)
+    app = create_app(config_name="testing")
+    app.config['test_data'] = generate_test_data()
     with app.test_client() as client:
-        with app.app_context():
-            logging.debug('Starting the test.')
-            db_name = db.get_engine(bind="flask_backend").url.database
-            create_db(test_db_name=db_name)
-            test_db_engine = db.get_engine(bind="flask_backend")
-            blog_news.Base.session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=test_db_engine,
-                )
-            )
-            blog_news.Base.query = blog_news.Base.session.query_property()
-            blog_news.Base.metadata.create_all(test_db_engine)
+        logging.debug('Starting the test.')
+        default_postgres_db_uri = app.config['POSTGRES_DATABASE_URI']
+        test_db_name = list(
+            app.config['SQLALCHEMY_BINDS'].values()
+        )[0].split('/')[-1]
+        create_db(
+            default_postgres_db_uri=default_postgres_db_uri,
+            test_db_name=test_db_name,
+        )
+
+        @app.before_request
+        def create_tables():
+            engine = g.flask_backend_session.get_bind()
+            blog_news.Base.metadata.create_all(engine)
 
         yield client
 
         @app.teardown_appcontext
         def shutdown_session_and_delete_db(exception=None):
             logging.debug('Shutting down the test.')
-            blog_news.Base.session.close()
-            test_db_engine.dispose()
-            delete_db(test_db_name=db_name)
+            if g.flask_backend_session:
+                g.flask_backend_session.remove()
+                engine = g.flask_backend_session.get_bind()
+                engine.dispose()
+            if g.hacker_news_session:
+                g.hacker_news_session.remove()
+                engine = g.hacker_news_session.get_bind()
+                engine.dispose()
+            delete_db(
+                default_postgres_db_uri=default_postgres_db_uri,
+                test_db_name=test_db_name,
+            )
 
 
-def create_db(test_db_name):
-    default_postgres_db_url = os.environ.get("POSTGRES_DATABASE_URI")
-    default_engine = create_engine(default_postgres_db_url)
+def create_db(default_postgres_db_uri, test_db_name):
+    default_engine = create_engine(default_postgres_db_uri)
     default_engine = default_engine.execution_options(
         isolation_level="AUTOCOMMIT"
     )
@@ -80,9 +90,8 @@ def create_db(test_db_name):
     return
 
 
-def delete_db(test_db_name):
-    default_postgres_db_url = os.environ.get("POSTGRES_DATABASE_URI")
-    default_engine = create_engine(default_postgres_db_url)
+def delete_db(default_postgres_db_uri, test_db_name):
+    default_engine = create_engine(default_postgres_db_uri)
     default_engine = default_engine.execution_options(
         isolation_level="AUTOCOMMIT"
     )
@@ -101,6 +110,18 @@ def delete_db(test_db_name):
     conn.close()
     default_engine.dispose()
     return
+
+
+def generate_test_data():
+    '''
+    return Faker's test data user
+    '''
+    fake = Faker()
+    fake_user = fake.profile()
+    fake_user['password'] = fake.password(
+        length=random.randrange(6, 32)
+    )
+    return fake_user
 
 
 def test_bn_comment_patch_story_id_comment_id_not_integer(client):
@@ -124,17 +145,18 @@ def test_bn_comment_patch_story_id_comment_id_not_integer(client):
 
 def test_bn_comment_patch_invalid_story_id_invalid_comment_id(client):
     """
-    test PATCH /api/blognews/<story_id>/comments endpoint
+    test PATCH /api/blognews/<story_id>/comments/<comment_id> endpoint
     with invalid story_id, invalid comment_id
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -150,8 +172,8 @@ def test_bn_comment_patch_invalid_story_id_invalid_comment_id(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -165,6 +187,12 @@ def test_bn_comment_patch_invalid_story_id_invalid_comment_id(client):
     ) == response
     response = client.patch(
         "/api/blognews/111222333/comments/111222333",
+        data=json.dumps(
+            {
+                "text": test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
@@ -177,17 +205,18 @@ def test_bn_comment_patch_invalid_story_id_invalid_comment_id(client):
 
 def test_bn_comment_patch_valid_story_id_invalid_comment_id(client):
     """
-    test PATCH /api/blognews/<story_id>/comments endpoint
+    test PATCH /api/blognews/<story_id>/comments/<comment_id> endpoint
     with valid story_id, invalid comment_id
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -203,8 +232,8 @@ def test_bn_comment_patch_valid_story_id_invalid_comment_id(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -218,6 +247,12 @@ def test_bn_comment_patch_valid_story_id_invalid_comment_id(client):
     ) == response
     response = client.patch(
         "/api/blognews/1/comments/111222333",
+        data=json.dumps(
+            {
+                "text": test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
     )
     response = json.loads(response.data)
     assert (
@@ -233,14 +268,15 @@ def test_bn_comment_patch_valid_no_json_data(client):
     test PATCH /api/blognews/<story_id>/comments endpoint
     with valid story_id, valid comment_id
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -256,8 +292,8 @@ def test_bn_comment_patch_valid_no_json_data(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -285,14 +321,15 @@ def test_bn_comment_patch_valid_no_required_fields(client):
     test PATCH /api/blognews/<story_id>/comments endpoint
     with valid story_id, comment_id no required fields
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -308,8 +345,8 @@ def test_bn_comment_patch_valid_no_required_fields(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -329,7 +366,6 @@ def test_bn_comment_patch_valid_no_required_fields(client):
     response = json.loads(response.data)
     assert (
         {
-            'by': ['Missing data for required field.'],
             'text': ['Missing data for required field.'],
         }
     ) == response
@@ -340,14 +376,15 @@ def test_bn_comment_patch_valid_required_fields_None(client):
     test PATCH /api/blognews/<story_id>/comments endpoint
     with valid story_id, comment_id required fields are None
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -363,8 +400,8 @@ def test_bn_comment_patch_valid_required_fields_None(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -380,7 +417,6 @@ def test_bn_comment_patch_valid_required_fields_None(client):
         "/api/blognews/1/comments/1",
         data=json.dumps(
             {
-                "by": None,
                 "text": None
             }
         ),
@@ -389,7 +425,6 @@ def test_bn_comment_patch_valid_required_fields_None(client):
     response = json.loads(response.data)
     assert (
         {
-            'by': ['Field may not be null.'],
             'text': ['Field may not be null.'],
         }
     ) == response
@@ -400,14 +435,15 @@ def test_bn_comment_patch_valid_required_fields_invalid_types(client):
     test PATCH /api/blognews/<story_id>/comments endpoint
     with valid story_id, comment_id required fields are invalid types
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -423,8 +459,8 @@ def test_bn_comment_patch_valid_required_fields_invalid_types(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -440,7 +476,6 @@ def test_bn_comment_patch_valid_required_fields_invalid_types(client):
         "/api/blognews/1/comments/1",
         data=json.dumps(
             {
-                "by": [[1], [2]],
                 "text": ([1], {3: 4})
             }
         ),
@@ -449,7 +484,6 @@ def test_bn_comment_patch_valid_required_fields_invalid_types(client):
     response = json.loads(response.data)
     assert (
         {
-            'by': ['Not a valid string.'],
             'text': ['Not a valid string.'],
         }
     ) == response
@@ -460,14 +494,15 @@ def test_bn_comment_patch_valid_empty_required_fields(client):
     test PATCH /api/blognews/<story_id>/comments endpoint
     with valid story_id, comment_id required fields are empty
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -483,8 +518,8 @@ def test_bn_comment_patch_valid_empty_required_fields(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -500,7 +535,6 @@ def test_bn_comment_patch_valid_empty_required_fields(client):
         "/api/blognews/1/comments/1",
         data=json.dumps(
             {
-                "by": '',
                 "text": '',
             }
         ),
@@ -509,7 +543,6 @@ def test_bn_comment_patch_valid_empty_required_fields(client):
     response = json.loads(response.data)
     assert (
         {
-            'by': ['Shorter than minimum length 2.'],
             'text': ['Shorter than minimum length 1.'],
         }
     ) == response
@@ -520,14 +553,15 @@ def test_bn_comment_patch_valid_required_fields(client):
     test PATCH /api/blognews/<story_id>/comments endpoint
     with valid story_id, comment_id required fields are valid
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -543,8 +577,8 @@ def test_bn_comment_patch_valid_required_fields(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -560,8 +594,7 @@ def test_bn_comment_patch_valid_required_fields(client):
         "/api/blognews/1/comments/1",
         data=json.dumps(
             {
-                "by": 'test_bob_2',
-                "text": 'updated comment text',
+                "text": test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -580,14 +613,15 @@ def test_bn_comment_patch_extra_field(client):
     test PATCH /api/blognews/<story_id>/comments endpoint
     with valid story_id, comment_id extra field
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -603,8 +637,8 @@ def test_bn_comment_patch_extra_field(client):
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -620,8 +654,7 @@ def test_bn_comment_patch_extra_field(client):
         "/api/blognews/1/comments/1",
         data=json.dumps(
             {
-                "by": 'test_bob_2',
-                "text": 'updated comment text',
+                "text": test_user_data['address'],
                 'new_field': 'new field outside the schema'
             }
         ),

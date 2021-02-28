@@ -1,4 +1,3 @@
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (
     Column,
     Integer,
@@ -8,8 +7,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.orm import relationship
-
-Base = declarative_base()
+from db import flask_backend_Base as Base
 
 
 class BlogNewsStory(Base):
@@ -39,7 +37,8 @@ class BlogNewsStory(Base):
         "BlogNewsStoryComment",
         backref="blog_news_story",
         order_by="desc(BlogNewsStoryComment.id)",
-        cascade="all,delete"
+        cascade="all,delete",
+        lazy='subquery'
     )
     origin = Column(String)
 

@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, g
 from flask_restful import Resource
 from api.models.blog_news import BlogNewsStory, BlogNewsStoryComment
 from api.schemas.blog_news import (
@@ -11,7 +11,6 @@ from api.schemas.blog_news import (
 from sqlalchemy import desc
 from sqlalchemy_pagination import paginate
 from marshmallow import ValidationError
-from api.models import blog_news
 import time
 
 news_pagination_schema = NewsPaginationSchema()
@@ -40,12 +39,53 @@ add_story_schema = BlogNewsStorySchema(
         "origin",
     ]
 )
+edit_story_schema = BlogNewsStorySchema(
+    exclude=[
+        "id",
+        "deleted",
+        "type",
+        'by',
+        "time",
+        # 'text',
+        "dead",
+        "parent",
+        "poll",
+        "kids",
+        # 'url',
+        "score",
+        # 'title',
+        "parts",
+        "descendants",
+        "comments",
+        "origin",
+    ]
+)
 add_comment_schema = BlogNewsCommentSchema(
     exclude=[
         "id",
         "deleted",
         "type",
         # 'by',
+        "time",
+        # 'text',
+        "dead",
+        "parent",
+        "poll",
+        "kids",
+        "url",
+        "score",
+        "title",
+        "parts",
+        "descendants",
+        "origin",
+    ]
+)
+edit_comment_schema = BlogNewsCommentSchema(
+    exclude=[
+        "id",
+        "deleted",
+        "type",
+        'by',
         "time",
         # 'text',
         "dead",
@@ -84,7 +124,9 @@ class BlogNewsStoriesResource(Resource):
                 ),
                 400,
             )
-        if not blog_news.BlogNewsStory.query.all():
+        db_session = g.flask_backend_session
+        blognews_stories = db_session.query(BlogNewsStory).all()
+        if not blognews_stories:
             return make_response(
                 jsonify(
                     {
@@ -94,7 +136,9 @@ class BlogNewsStoriesResource(Resource):
                 ), 404,
             )
         page = paginate(
-            BlogNewsStory.query.order_by(desc(BlogNewsStory.time))
+            db_session.query(
+                BlogNewsStory
+            ).order_by(desc(BlogNewsStory.time))
             .limit(500)
             .from_self(),
             incoming_pagination["pagenumber"],
@@ -131,6 +175,7 @@ class BlogNewsStoriesResource(Resource):
             story = add_story_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        db_session = g.flask_backend_session
         full_story = {
             "time": int(time.time()),
             "deleted": False,
@@ -148,8 +193,8 @@ class BlogNewsStoriesResource(Resource):
             "origin": "my_blog",
         }
         data = BlogNewsStory(**full_story)
-        blog_news.Base.session.add(data)
-        blog_news.Base.session.commit()
+        db_session.add(data)
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Story added",
@@ -170,15 +215,14 @@ class BlogNewsStoryResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        if not story:
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        story = BlogNewsStory.query.filter(
-            BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first()
         return make_response(jsonify(story_schema.dump(story)), 200)
 
     @classmethod
@@ -192,17 +236,16 @@ class BlogNewsStoryResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        if not story:
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        story = BlogNewsStory.query.filter(
-            BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first()
-        blog_news.Base.session.delete(story)
-        blog_news.Base.session.commit()
+        db_session.delete(story)
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Story deleted",
@@ -221,17 +264,19 @@ class BlogNewsStoryResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        try:
+            story = edit_story_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        db_session = g.flask_backend_session
+        blognews_story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        if not blognews_story:
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        try:
-            story = add_story_schema.load(request.get_json())
-        except ValidationError as err:
-            return err.messages, 400
-        BlogNewsStory.query.filter(
+        db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
         ).update(
             {
@@ -241,7 +286,7 @@ class BlogNewsStoryResource(Resource):
                 "time": int(time.time()),
             }
         )
-        blog_news.Base.session.commit()
+        db_session.commit()
         return make_response(
             jsonify({"message": "Story succesfully updated", "code": 200}), 200
         )
@@ -259,14 +304,16 @@ class BlogNewsStoryCommentsResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        if not story:
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
         comments = (
-            BlogNewsStoryComment.query.filter(
+            db_session.query(BlogNewsStoryComment).filter(
                 BlogNewsStoryComment.parent == incoming_story_id["story_id"]
             )
             .order_by(desc(BlogNewsStoryComment.time))
@@ -285,16 +332,18 @@ class BlogNewsStoryCommentsResource(Resource):
             incoming_story_id = story_id_schema.load(story_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
-            BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
-            return make_response(
-                jsonify({"message": "Story not found", "code": 404}), 404
-            )
         try:
             incoming_comment = add_comment_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
+            BlogNewsStory.id == incoming_story_id["story_id"]
+        ).first()
+        if not story:
+            return make_response(
+                jsonify({"message": "Story not found", "code": 404}), 404
+            )
         incoming_comment["dead"] = False
         incoming_comment["deleted"] = False
         incoming_comment["descendants"] = 0
@@ -304,8 +353,8 @@ class BlogNewsStoryCommentsResource(Resource):
         incoming_comment["time"] = int(time.time())
         incoming_comment["type"] = "comment"
         comment_data = BlogNewsStoryComment(**incoming_comment)
-        blog_news.Base.session.add(comment_data)
-        blog_news.Base.session.commit()
+        db_session.add(comment_data)
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Comment added",
@@ -332,21 +381,21 @@ class BlogNewsStoryCommentResource(Resource):
             incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        comment = db_session.query(BlogNewsStoryComment).filter(
+            BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
+        ).first()
+        if not story:
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        if not BlogNewsStoryComment.query.filter(
-            BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
-        ).first():
+        if not comment:
             return make_response(
                 jsonify({"message": "Comment not found", "code": 404}), 404
             )
-        comment = BlogNewsStoryComment.query.filter(
-            BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
-        ).first()
         return make_response(jsonify(story_schema.dump(comment)), 200)
 
     @classmethod
@@ -366,22 +415,25 @@ class BlogNewsStoryCommentResource(Resource):
             incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        comment = db_session.query(BlogNewsStoryComment).filter(
+            BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
+        ).first()
+        if not story:
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        if not BlogNewsStoryComment.query.filter(
-            BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
-        ).first():
+        if not comment:
             return make_response(
                 jsonify({"message": "Comment not found", "code": 404}), 404
             )
-        BlogNewsStoryComment.query.filter(
+        db_session.query(BlogNewsStoryComment).filter(
             BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
         ).delete()
-        blog_news.Base.session.commit()
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Comment deleted",
@@ -406,26 +458,34 @@ class BlogNewsStoryCommentResource(Resource):
             incoming_comment_id = comment_id_schema.load(comment_id)
         except ValidationError as err:
             return err.messages, 400
-        if not BlogNewsStory.query.filter(
+        try:
+            incoming_comment = edit_comment_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        db_session = g.flask_backend_session
+        story = db_session.query(BlogNewsStory).filter(
             BlogNewsStory.id == incoming_story_id["story_id"]
-        ).first():
+        ).first()
+        comment = db_session.query(BlogNewsStoryComment).filter(
+            BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
+        ).first()
+        if not story:
             return make_response(
                 jsonify({"message": "Story not found", "code": 404}), 404
             )
-        if not BlogNewsStoryComment.query.filter(
-            BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
-        ).first():
+        if not comment:
             return make_response(
                 jsonify({"message": "Comment not found", "code": 404}), 404
             )
-        try:
-            incoming_comment = add_comment_schema.load(request.get_json())
-        except ValidationError as err:
-            return err.messages, 400
-        BlogNewsStoryComment.query.filter(
+        db_session.query(BlogNewsStoryComment).filter(
             BlogNewsStoryComment.id == incoming_comment_id["comment_id"]
-        ).update({"text": incoming_comment["text"], "time": int(time.time())})
-        blog_news.Base.session.commit()
+        ).update(
+            {
+                "text": incoming_comment["text"],
+                "time": int(time.time())
+            }
+        )
+        db_session.commit()
         return make_response(jsonify(
             {
                 "message": "Comment updated",

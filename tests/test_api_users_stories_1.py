@@ -124,11 +124,12 @@ def generate_test_data():
     return fake_user
 
 
-def test_blognews_delete_no_story_id(client):
-    """
-    test DELETE /api/blognews/<story_id> endpoint
-    with no story_id data
-    """
+def test_users_stories_valid_data(client):
+    '''
+    test GET /api/users/<username>/stories/?pagenumber=N , getting up to 500
+    user's stories, valid data
+    '''
+    # add story
     test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
@@ -149,20 +150,19 @@ def test_blognews_delete_no_story_id(client):
             'message': 'Story added'
         }
     ) == response
-    response = client.delete("/api/blognews/")
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/stories/?pagenumber=1",
+    )
     response = json.loads(response.data)
-    assert (
-        {
-            "message": 'The method is not allowed for the requested URL.'
-        }
-    ) == response
+    assert test_user_data['username'] == response['items'][0]['by']
 
 
-def test_blognews_delete_story_id_not_integer(client):
-    """
-    test DELETE /api/blognews/<story_id> endpoint
-    with story_id not integer
-    """
+def test_users_stories_no_pagenumber(client):
+    '''
+    test GET /api/users/<username>/stories , getting up to 500
+    user's stories, no ?pagenumber=N parameter
+    '''
+    # add story
     test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
@@ -183,16 +183,198 @@ def test_blognews_delete_story_id_not_integer(client):
             'message': 'Story added'
         }
     ) == response
-    response = client.delete("/api/blognews/not_integer")
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/stories/",
+    )
+    response = json.loads(response.data)
+    assert (
+        {"pagenumber": ["Field may not be null."]} == response
+    )
+
+
+def test_users_stories_pagenumber_not_int(client):
+    '''
+    test GET /api/users/<username>/stories , getting up to 500
+    user's stories, ?pagenumber=not_integer
+    '''
+    # add story
+    test_user_data = client.application.config['test_data']
+    response = client.post(
+        "/api/blognews/",
+        data=json.dumps(
+            {
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Story added'
+        }
+    ) == response
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/stories/?pagenumber=not_int",
+    )
+    response = json.loads(response.data)
+    assert (
+        {"pagenumber": ["Not a valid integer."]} == response
+    )
+
+
+def test_users_stories_pagenumber_is_zero(client):
+    '''
+    test GET /api/users/<username>/stories , getting up to 500
+    user's stories, ?pagenumber=0 , is zero
+    '''
+    # add story
+    test_user_data = client.application.config['test_data']
+    response = client.post(
+        "/api/blognews/",
+        data=json.dumps(
+            {
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Story added'
+        }
+    ) == response
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/stories/?pagenumber=0",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            "code": 400,
+            "message": "pagenumber must be greater then 0"
+        }
+    ) == response
+
+
+def test_users_stories_pagenumber_is_more_than_pages_available(client):
+    '''
+    test GET /api/users/<username>/stories , getting up to 500
+    user's stories, ?pagenumber=100 , more than pages available
+    '''
+    # add story
+    test_user_data = client.application.config['test_data']
+    response = client.post(
+        "/api/blognews/",
+        data=json.dumps(
+            {
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Story added'
+        }
+    ) == response
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/stories/?pagenumber=100",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            "code": 404,
+            "message": "Pagination page not found"
+        }
+    ) == response
+
+
+def test_users_story_id_valid(client):
+    '''
+    test GET /api/users/<username>/stories/<story_id> , user's story
+    <story_id> valid
+    '''
+    # add story
+    test_user_data = client.application.config['test_data']
+    response = client.post(
+        "/api/blognews/",
+        data=json.dumps(
+            {
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Story added'
+        }
+    ) == response
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/stories/1",
+    )
+    response = json.loads(response.data)
+    assert test_user_data['username'] == response['by']
+
+
+def test_users_story_id_not_int(client):
+    '''
+    test GET /api/users/<username>/stories/<story_id> , user's story
+    <story_id> not integer
+    '''
+    # add story
+    test_user_data = client.application.config['test_data']
+    response = client.post(
+        "/api/blognews/",
+        data=json.dumps(
+            {
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Story added'
+        }
+    ) == response
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/stories/not_int",
+    )
     response = json.loads(response.data)
     assert {"story_id": ["Not a valid integer."]} == response
 
 
-def test_blognews_delete_story_id_not_in_db(client):
-    """
-    test DELETE /api/blognews/<story_id> endpoint
-    with story_id not present in the database
-    """
+def test_users_story_not_in_db(client):
+    '''
+    test GET /api/users/<username>/stories/<story_id> , user's story
+    <story_id> not in the database
+    '''
+    # add story
     test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
@@ -213,100 +395,24 @@ def test_blognews_delete_story_id_not_in_db(client):
             'message': 'Story added'
         }
     ) == response
-    response = client.delete("/api/blognews/111222333")
-    response = json.loads(response.data)
-    assert (
-        {
-            "code": 404,
-            "message": "Story not found"
-        }
-    ) == response
-
-
-def test_blognews_delete_valid_story_id(client):
-    """
-    test DELETE /api/blognews/<story_id> endpoint
-    with valid story_id, no json data
-    """
-    test_user_data = client.application.config['test_data']
-    response = client.post(
-        "/api/blognews/",
-        data=json.dumps(
-            {
-                'url': test_user_data['website'][0],
-                'by': test_user_data['username'],
-                'text': test_user_data['residence'],
-                'title': test_user_data['address'],
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'code': 201,
-            'message': 'Story added'
-        }
-    ) == response
-    response = client.delete("/api/blognews/1")
-    response = json.loads(response.data)
-    assert (
-        {
-            "code": 200,
-            "message": "Story deleted"
-        }
-    ) == response
-
-
-def test_blognews_comments_post_invalid_story_id(client):
-    """
-    test POST /api/blognews/<story_id>/comments endpoint
-    with invalid story_id
-    """
-    test_user_data = client.application.config['test_data']
-    response = client.post(
-        "/api/blognews/",
-        data=json.dumps(
-            {
-                'url': test_user_data['website'][0],
-                'by': test_user_data['username'],
-                'text': test_user_data['residence'],
-                'title': test_user_data['address'],
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'code': 201,
-            'message': 'Story added'
-        }
-    ) == response
-    response = client.post(
-        "/api/blognews/111222333/comments",
-        data=json.dumps(
-            {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
-            }
-        ),
-        content_type="application/json",
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/stories/111222333",
     )
     response = json.loads(response.data)
     assert (
         {
             "code": 404,
-            "message": "Story not found"
+            "message": "story not found"
         }
     ) == response
 
 
-def test_blognews_comments_post_no_json_data(client):
-    """
-    test POST /api/blognews/<story_id>/comments endpoint
-    with valid story_id, and no json data
-    """
+def test_users_comments_valid_data(client):
+    '''
+    test GET /api/users/<username>/comments , getting up to 500
+    user's comments, valid data
+    '''
+    # add story
     test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
@@ -327,219 +433,13 @@ def test_blognews_comments_post_no_json_data(client):
             'message': 'Story added'
         }
     ) == response
+    # add comment
     response = client.post(
         "/api/blognews/1/comments",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            '_schema': ['Invalid input type.'],
-        }
-    ) == response
-
-
-def test_blognews_comments_post_no_required_fields(client):
-    """
-    test POST /api/blognews/<story_id>/comments endpoint
-    with valid story_id and no required fields
-    """
-    test_user_data = client.application.config['test_data']
-    response = client.post(
-        "/api/blognews/",
         data=json.dumps(
             {
-                'url': test_user_data['website'][0],
                 'by': test_user_data['username'],
                 'text': test_user_data['residence'],
-                'title': test_user_data['address'],
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'code': 201,
-            'message': 'Story added'
-        }
-    ) == response
-    response = client.post(
-        "/api/blognews/1/comments",
-        data=json.dumps({}),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'by': ['Missing data for required field.'],
-            'text': ['Missing data for required field.'],
-        }
-    ) == response
-
-
-def test_blognews_comments_post_required_fields_None(client):
-    """
-    test POST /api/blognews/<story_id>/comments endpoint
-    with valid story_id and required fields values is None
-    """
-    test_user_data = client.application.config['test_data']
-    response = client.post(
-        "/api/blognews/",
-        data=json.dumps(
-            {
-                'url': test_user_data['website'][0],
-                'by': test_user_data['username'],
-                'text': test_user_data['residence'],
-                'title': test_user_data['address'],
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'code': 201,
-            'message': 'Story added'
-        }
-    ) == response
-    response = client.post(
-        "/api/blognews/1/comments",
-        data=json.dumps(
-            {
-                'by': None,
-                'text': None,
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'by': ['Field may not be null.'],
-            'text': ['Field may not be null.'],
-        }
-    ) == response
-
-
-def test_blognews_comments_post_required_fields_invalid_types(client):
-    """
-    test POST /api/blognews/<story_id>/comments endpoint
-    with valid story_id and required fields are invalid types
-    """
-    test_user_data = client.application.config['test_data']
-    response = client.post(
-        "/api/blognews/",
-        data=json.dumps(
-            {
-                'url': test_user_data['website'][0],
-                'by': test_user_data['username'],
-                'text': test_user_data['residence'],
-                'title': test_user_data['address'],
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'code': 201,
-            'message': 'Story added'
-        }
-    ) == response
-    response = client.post(
-        "/api/blognews/1/comments",
-        data=json.dumps(
-            {
-                'by': [[1]],
-                'text': {2: 'second'},
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'by': ['Not a valid string.'],
-            'text': ['Not a valid string.'],
-        }
-    ) == response
-
-
-def test_blognews_comments_post_empty_required_fields(client):
-    """
-    test POST /api/blognews/<story_id>/comments endpoint
-    with valid story_id and required fields are empty
-    """
-    test_user_data = client.application.config['test_data']
-    response = client.post(
-        "/api/blognews/",
-        data=json.dumps(
-            {
-                'url': test_user_data['website'][0],
-                'by': test_user_data['username'],
-                'text': test_user_data['residence'],
-                'title': test_user_data['address'],
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'code': 201,
-            'message': 'Story added'
-        }
-    ) == response
-    response = client.post(
-        "/api/blognews/1/comments",
-        data=json.dumps(
-            {
-                'by': '',
-                'text': '',
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'by': ['Shorter than minimum length 2.'],
-            'text': ['Shorter than minimum length 1.'],
-        }
-    ) == response
-
-
-def test_blognews_comments_post_valid_required_fields(client):
-    """
-    test POST /api/blognews/<story_id>/comments endpoint
-    with valid story_id and required fields are valid
-    """
-    test_user_data = client.application.config['test_data']
-    response = client.post(
-        "/api/blognews/",
-        data=json.dumps(
-            {
-                'url': test_user_data['website'][0],
-                'by': test_user_data['username'],
-                'text': test_user_data['residence'],
-                'title': test_user_data['address'],
-            }
-        ),
-        content_type="application/json",
-    )
-    response = json.loads(response.data)
-    assert (
-        {
-            'code': 201,
-            'message': 'Story added'
-        }
-    ) == response
-    response = client.post(
-        "/api/blognews/1/comments",
-        data=json.dumps(
-            {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
             }
         ),
         content_type="application/json",
@@ -551,13 +451,20 @@ def test_blognews_comments_post_valid_required_fields(client):
             'message': 'Comment added',
         }
     ) == response
+    # get user's comments
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/comments/?pagenumber=1",
+    )
+    response = json.loads(response.data)
+    assert test_user_data['username'] == response['items'][0]['by']
 
 
-def test_blognews_comments_post_extra_field(client):
-    """
-    test POST /api/blognews/<story_id>/comments endpoint
-    with valid story_id and extra field
-    """
+def test_users_comments_no_pagenumber(client):
+    '''
+    test GET /api/users/<username>/comments/?pagenumber=N , getting up to 500
+    user's comments, no ?pagenumber=N parameter
+    '''
+    # add story
     test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
@@ -578,13 +485,13 @@ def test_blognews_comments_post_extra_field(client):
             'message': 'Story added'
         }
     ) == response
+    # add comment
     response = client.post(
         "/api/blognews/1/comments",
         data=json.dumps(
             {
-                'by': 'test_bob_2',
-                'text': 'test comment text',
-                'new_field': 'new field outside the schema'
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
             }
         ),
         content_type="application/json",
@@ -592,6 +499,189 @@ def test_blognews_comments_post_extra_field(client):
     response = json.loads(response.data)
     assert (
         {
-            'new_field': ['Unknown field.']
+            'code': 201,
+            'message': 'Comment added',
+        }
+    ) == response
+    # get user's comments
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/comments/",
+    )
+    response = json.loads(response.data)
+    assert (
+        {"pagenumber": ["Field may not be null."]} == response
+    )
+
+
+def test_users_comments_pagenumber_not_int(client):
+    '''
+    test GET /api/users/<username>/comments/?pagenumber=N , getting up to 500
+    user's comments, ?pagenumber=not_integer
+    '''
+    # add story
+    test_user_data = client.application.config['test_data']
+    response = client.post(
+        "/api/blognews/",
+        data=json.dumps(
+            {
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Story added'
+        }
+    ) == response
+    # add comment
+    response = client.post(
+        "/api/blognews/1/comments",
+        data=json.dumps(
+            {
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Comment added',
+        }
+    ) == response
+    # get user's comments
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/comments"
+        "/?pagenumber=not_int",
+
+    )
+    response = json.loads(response.data)
+    assert (
+        {"pagenumber": ["Not a valid integer."]} == response
+    )
+
+
+def test_users_comments_pagenumber_is_zero(client):
+    '''
+    test GET /api/users/<username>/comments/?pagenumber=N , getting up to 500
+    user's comments, ?pagenumber=0 is zero
+    '''
+    # add story
+    test_user_data = client.application.config['test_data']
+    response = client.post(
+        "/api/blognews/",
+        data=json.dumps(
+            {
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Story added'
+        }
+    ) == response
+    # add comment
+    response = client.post(
+        "/api/blognews/1/comments",
+        data=json.dumps(
+            {
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Comment added',
+        }
+    ) == response
+    # get user's comments
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/comments"
+        "/?pagenumber=0",
+
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            "code": 400,
+            "message": "pagenumber must be greater then 0"
+        }
+    ) == response
+
+
+def test_users_comments_pagenumber_is_more_than_pages_available(client):
+    '''
+    test GET /api/users/<username>/comments/?pagenumber=N , getting up to 500
+    user's comments, ?pagenumber=100 is more that pages available
+    '''
+    # add story
+    test_user_data = client.application.config['test_data']
+    response = client.post(
+        "/api/blognews/",
+        data=json.dumps(
+            {
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Story added'
+        }
+    ) == response
+    # add comment
+    response = client.post(
+        "/api/blognews/1/comments",
+        data=json.dumps(
+            {
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+            }
+        ),
+        content_type="application/json",
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            'code': 201,
+            'message': 'Comment added',
+        }
+    ) == response
+    # get user's comments
+    response = client.get(
+        f"/api/users/{test_user_data['username']}/comments"
+        "/?pagenumber=100",
+
+    )
+    response = json.loads(response.data)
+    assert (
+        {
+            "code": 404,
+            "message": "Pagination page not found"
         }
     ) == response

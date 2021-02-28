@@ -1,6 +1,13 @@
 from flask import Blueprint, make_response, jsonify
 from flask_restful import Api
-from .resources.user import UserRegistration, UserList, UserLogin
+from .resources.user import (
+    UsersResource,
+    UserResource,
+    UserLogin,
+    UserStories,
+    UserStory,
+    UserComments,
+)
 from .resources.hacker_news_top_story import (
     HackerNewsTopStoriesResourse,
     HackerNewsTopStoryResource,
@@ -30,9 +37,28 @@ def api_home_page():
     return make_response(jsonify({"message": "Api Home page"}))
 
 
-api.add_resource(UserRegistration, "/users/register")
+api.add_resource(
+    UsersResource, "/users",
+    methods=["GET", "POST"]
+)
+api.add_resource(
+    UserResource, "/users/<username>",
+    methods=["GET", "PATCH", "DELETE"]
+)
 api.add_resource(UserLogin, "/users/signin")
-api.add_resource(UserList, "/users")
+api.add_resource(
+    UserStories, "/users/<username>/stories/",
+    methods=["GET"]
+
+)
+api.add_resource(
+    UserStory, "/users/<username>/stories/<story_id>",
+    methods=["GET"]
+)
+api.add_resource(
+    UserComments, "/users/<username>/comments/",
+    methods=["GET"]
+)
 ###
 api.add_resource(
     HackerNewsTopStoriesResourse,
@@ -82,7 +108,7 @@ api.add_resource(
 )
 api.add_resource(
     BlogNewsStoryResource,
-    "/blognews/<int:story_id>",
+    "/blognews/<story_id>",
     methods=["GET", "DELETE", "PATCH"]
 )
 api.add_resource(

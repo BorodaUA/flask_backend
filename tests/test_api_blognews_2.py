@@ -3,11 +3,13 @@ import sys
 import pytest
 import json
 import logging
+from flask import g
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.exc import ProgrammingError, OperationalError
+from faker import Faker
+import random
 sys.path.append(os.getcwd())
-from flask_backend import create_app, db # noqa
+from flask_backend import create_app # noqa
 from api.models import blog_news # noqa
 
 # pytest -s -o log_cli=true -o log_level=DEBUG
@@ -15,37 +17,45 @@ from api.models import blog_news # noqa
 
 @pytest.fixture(scope='function')
 def client(request):
-    app = create_app("testing")
-    db.init_app(app)
+    app = create_app(config_name="testing")
+    app.config['test_data'] = generate_test_data()
     with app.test_client() as client:
-        with app.app_context():
-            logging.debug('Starting the test.')
-            db_name = db.get_engine(bind="flask_backend").url.database
-            create_db(test_db_name=db_name)
-            test_db_engine = db.get_engine(bind="flask_backend")
-            blog_news.Base.session = scoped_session(
-                sessionmaker(
-                    autocommit=False,
-                    autoflush=False,
-                    bind=test_db_engine,
-                )
-            )
-            blog_news.Base.query = blog_news.Base.session.query_property()
-            blog_news.Base.metadata.create_all(test_db_engine)
+        logging.debug('Starting the test.')
+        default_postgres_db_uri = app.config['POSTGRES_DATABASE_URI']
+        test_db_name = list(
+            app.config['SQLALCHEMY_BINDS'].values()
+        )[0].split('/')[-1]
+        create_db(
+            default_postgres_db_uri=default_postgres_db_uri,
+            test_db_name=test_db_name,
+        )
+
+        @app.before_request
+        def create_tables():
+            engine = g.flask_backend_session.get_bind()
+            blog_news.Base.metadata.create_all(engine)
 
         yield client
 
         @app.teardown_appcontext
         def shutdown_session_and_delete_db(exception=None):
             logging.debug('Shutting down the test.')
-            blog_news.Base.session.close()
-            test_db_engine.dispose()
-            delete_db(test_db_name=db_name)
+            if g.flask_backend_session:
+                g.flask_backend_session.remove()
+                engine = g.flask_backend_session.get_bind()
+                engine.dispose()
+            if g.hacker_news_session:
+                g.hacker_news_session.remove()
+                engine = g.hacker_news_session.get_bind()
+                engine.dispose()
+            delete_db(
+                default_postgres_db_uri=default_postgres_db_uri,
+                test_db_name=test_db_name,
+            )
 
 
-def create_db(test_db_name):
-    default_postgres_db_url = os.environ.get("POSTGRES_DATABASE_URI")
-    default_engine = create_engine(default_postgres_db_url)
+def create_db(default_postgres_db_uri, test_db_name):
+    default_engine = create_engine(default_postgres_db_uri)
     default_engine = default_engine.execution_options(
         isolation_level="AUTOCOMMIT"
     )
@@ -80,9 +90,8 @@ def create_db(test_db_name):
     return
 
 
-def delete_db(test_db_name):
-    default_postgres_db_url = os.environ.get("POSTGRES_DATABASE_URI")
-    default_engine = create_engine(default_postgres_db_url)
+def delete_db(default_postgres_db_uri, test_db_name):
+    default_engine = create_engine(default_postgres_db_uri)
     default_engine = default_engine.execution_options(
         isolation_level="AUTOCOMMIT"
     )
@@ -103,19 +112,32 @@ def delete_db(test_db_name):
     return
 
 
+def generate_test_data():
+    '''
+    return Faker's test data user
+    '''
+    fake = Faker()
+    fake_user = fake.profile()
+    fake_user['password'] = fake.password(
+        length=random.randrange(6, 32)
+    )
+    return fake_user
+
+
 def test_blognews_get_no_story_id(client):
     """
     test GET /api/blognews/<story_id> endpoint
     with no story_id data
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -137,14 +159,15 @@ def test_blognews_get_story_id_not_integer(client):
     test GET /api/blognews/<story_id> endpoint
     with story_id not an iteger
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -157,15 +180,8 @@ def test_blognews_get_story_id_not_integer(client):
         }
     ) == response
     response = client.get("/api/blognews/not_integer")
-    error_response = (
-        b'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n'
-        b'<title>404 Not Found</title>\n'
-        b'<h1>Not Found</h1>\n'
-        b'<p>The requested URL was not found on the server. '
-        b'If you entered the URL manually please check your '
-        b'spelling and try again.</p>\n'
-    )
-    assert error_response == response.data
+    response = json.loads(response.data)
+    assert {"story_id": ["Not a valid integer."]} == response
 
 
 def test_blognews_get_story_id_not_in_db(client):
@@ -173,14 +189,15 @@ def test_blognews_get_story_id_not_in_db(client):
     test GET /api/blognews/<story_id> endpoint
     with story_id not present in the database
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -207,14 +224,15 @@ def test_blognews_get_story_id_valid(client):
     test GET /api/blognews/<story_id> endpoint
     with valid story_id
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -228,7 +246,7 @@ def test_blognews_get_story_id_valid(client):
     ) == response
     response = client.get("/api/blognews/1")
     response = json.loads(response.data)
-    assert 'test_bob_2' == response['by']
+    assert test_user_data['username'] == response['by']
 
 
 def test_blognews_patch_no_story_id(client):
@@ -236,14 +254,15 @@ def test_blognews_patch_no_story_id(client):
     test PATCH /api/blognews/<story_id> endpoint
     with no story_id data
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -269,14 +288,15 @@ def test_blognews_patch_story_id_not_integer(client):
     test PATCH /api/blognews/<story_id> endpoint
     with story_id not an iteger
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -289,15 +309,8 @@ def test_blognews_patch_story_id_not_integer(client):
         }
     ) == response
     response = client.patch("/api/blognews/not_integer")
-    error_response = (
-        b'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">\n'
-        b'<title>404 Not Found</title>\n'
-        b'<h1>Not Found</h1>\n'
-        b'<p>The requested URL was not found on the server. '
-        b'If you entered the URL manually please check your '
-        b'spelling and try again.</p>\n'
-    )
-    assert error_response == response.data
+    response = json.loads(response.data)
+    assert {"story_id": ["Not a valid integer."]} == response
 
 
 def test_blognews_patch_story_id_not_in_db(client):
@@ -305,14 +318,15 @@ def test_blognews_patch_story_id_not_in_db(client):
     test PATCH /api/blognews/<story_id> endpoint
     with story_id not present in the database
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -324,7 +338,17 @@ def test_blognews_patch_story_id_not_in_db(client):
             'message': 'Story added'
         }
     ) == response
-    response = client.patch("/api/blognews/111222333")
+    response = client.patch(
+        "/api/blognews/111222333",
+        data=json.dumps(
+            {
+                'url': 'https://www.google.com/',
+                'text': 'text from test',
+                'title': 'title from test',
+            }
+        ),
+        content_type="application/json",
+    )
     response = json.loads(response.data)
     assert (
         {
@@ -339,14 +363,15 @@ def test_blognews_patch_valid_story_id_no_json_data(client):
     test PATCH /api/blognews/<story_id> endpoint
     with valid story_id, no json data
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -372,14 +397,15 @@ def test_blognews_patch_valid_story_id_no_required_fields(client):
     test PATCH /api/blognews/<story_id> endpoint
     with valid story_id, no required fields
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -400,7 +426,6 @@ def test_blognews_patch_valid_story_id_no_required_fields(client):
     assert (
         {
             'url': ['Missing data for required field.'],
-            'by': ['Missing data for required field.'],
             'text': ['Missing data for required field.'],
             'title': ['Missing data for required field.'],
         }
@@ -412,14 +437,15 @@ def test_blognews_patch_valid_story_id_empty_required_fields(client):
     test PATCH /api/blognews/<story_id> endpoint
     with valid story_id, empty required fields
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -436,7 +462,6 @@ def test_blognews_patch_valid_story_id_empty_required_fields(client):
         data=json.dumps(
             {
                 'url': '',
-                'by': '',
                 'text': '',
                 'title': '',
             }
@@ -447,7 +472,6 @@ def test_blognews_patch_valid_story_id_empty_required_fields(client):
     assert (
         {
             'url': ['Shorter than minimum length 1.'],
-            'by': ['Shorter than minimum length 2.'],
             'text': ['Shorter than minimum length 1.'],
             'title': ['Shorter than minimum length 1.'],
         }
@@ -459,14 +483,15 @@ def test_blognews_patch_valid_story_id_required_fields_None(client):
     test PATCH /api/blognews/<story_id> endpoint
     with valid story_id, required fields is None
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -483,7 +508,6 @@ def test_blognews_patch_valid_story_id_required_fields_None(client):
         data=json.dumps(
             {
                 'url': None,
-                'by': None,
                 'text': None,
                 'title': None,
             }
@@ -494,7 +518,6 @@ def test_blognews_patch_valid_story_id_required_fields_None(client):
     assert (
         {
             'url': ['Field may not be null.'],
-            'by': ['Field may not be null.'],
             'text': ['Field may not be null.'],
             'title': ['Field may not be null.'],
         }
@@ -506,14 +529,15 @@ def test_blognews_patch_valid_story_id_invalid_required_fields_type(client):
     test PATCH /api/blognews/<story_id> endpoint
     with valid story_id, required fields is wrong type, not str
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -530,7 +554,6 @@ def test_blognews_patch_valid_story_id_invalid_required_fields_type(client):
         data=json.dumps(
             {
                 'url': [1],
-                'by': {2: None},
                 'text': (None, 3),
                 'title': [[4], [5]],
             }
@@ -541,7 +564,6 @@ def test_blognews_patch_valid_story_id_invalid_required_fields_type(client):
     assert (
         {
             'url': ['Not a valid string.'],
-            'by': ['Not a valid string.'],
             'text': ['Not a valid string.'],
             'title': ['Not a valid string.'],
         }
@@ -553,14 +575,15 @@ def test_blognews_patch_valid_story_id_extra_field(client):
     test PATCH /api/blognews/<story_id> endpoint
     with valid story_id, and extra field
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -577,7 +600,6 @@ def test_blognews_patch_valid_story_id_extra_field(client):
         data=json.dumps(
             {
                 'url': 'https://www.google.com/search?q=updated',
-                'by': 'test_bob_2',
                 'text': 'uptated text from test',
                 'title': 'updated title from test',
                 'new_field': 'new field outside the schema'
@@ -598,14 +620,15 @@ def test_blognews_patch_valid_story_id_valid_required_fields(client):
     test PATCH /api/blognews/<story_id> endpoint
     with valid story_id, valid required fields
     """
+    test_user_data = client.application.config['test_data']
     response = client.post(
         "/api/blognews/",
         data=json.dumps(
             {
-                'url': 'https://www.google.com/',
-                'by': 'test_bob_2',
-                'text': 'text from test',
-                'title': 'title from test',
+                'url': test_user_data['website'][0],
+                'by': test_user_data['username'],
+                'text': test_user_data['residence'],
+                'title': test_user_data['address'],
             }
         ),
         content_type="application/json",
@@ -622,7 +645,6 @@ def test_blognews_patch_valid_story_id_valid_required_fields(client):
         data=json.dumps(
             {
                 'url': 'https://www.google.com/search?q=updated',
-                'by': 'test_bob_2',
                 'text': 'uptated text from test',
                 'title': 'updated title from test',
             }

@@ -1,4 +1,3 @@
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (
     Column,
     Integer,
@@ -9,8 +8,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.orm import relationship
-
-Base = declarative_base()
+from db import hacker_news_Base as Base
 
 
 class HackerNewsTopStory(Base):
@@ -38,6 +36,7 @@ class HackerNewsTopStory(Base):
         "HackerNewsTopStoryComment",
         backref="hacker_news_top_story",
         order_by="desc(HackerNewsTopStoryComment.parsed_time)",
+        lazy='subquery'
     )
     #
     origin = Column(String)
@@ -94,6 +93,7 @@ class HackerNewsNewStory(Base):
         "HackerNewsNewStoryComment",
         backref="hacker_news_new_story",
         order_by="desc(HackerNewsNewStoryComment.parsed_time)",
+        lazy='subquery'
     )
     origin = Column(String)
     parsed_time = Column(DateTime)

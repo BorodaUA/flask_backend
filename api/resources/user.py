@@ -1,32 +1,69 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, g
 from flask_restful import Resource
-from api.models.user import UserModel, Base
-from api.schemas.user import UserRegisterSchema, UserSigninSchema
+from api.models.user import UserModel
+from api.models.blog_news import BlogNewsStory, BlogNewsStoryComment
+from api.schemas.user import (
+    UserSchema,
+    UserSigninSchema,
+    UserPasswordUpdateSchema,
+    UsernameSchema
+)
+from api.schemas.blog_news import (
+    BlogNewsStorySchema,
+    StoryIdSchema,
+    NewsPaginationSchema
+)
 from marshmallow import ValidationError
-
-
+from sqlalchemy_pagination import paginate
+from sqlalchemy import desc
 from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
 from uuid import uuid4
 
-user_register_schema = UserRegisterSchema()
-users_schema = UserRegisterSchema(many=True)
-
+user_register_schema = UserSchema()
+users_schema = UserSchema(many=True)
 user_signin_schema = UserSigninSchema()
+user_password_schema = UserPasswordUpdateSchema()
+username_schema = UsernameSchema()
+blognews_stories_schema = BlogNewsStorySchema(many=True)
+blognews_story_schema = BlogNewsStorySchema()
+story_id_schema = StoryIdSchema()
+news_pagination_schema = NewsPaginationSchema()
 
 
-class UserRegistration(Resource):
+class UsersResource(Resource):
+    @classmethod
+    def get(cls):
+        """
+        Getting GET requests on the '/api/users' endpoint, and returning a list
+        with all users in database.
+        """
+        db_session = g.flask_backend_session
+        users = db_session.query(UserModel).all()
+        if not users:
+            return make_response(
+                jsonify({"message": "users not found", "code": 404}), 404
+            )
+        return users_schema.dump(users)
+
     @classmethod
     def post(cls):
         """
-        Getting POST requests on the '/api/users/register' endpoint, and
-        saving new users to the database.
+        Getting POST requests on the '/api/users' endpoint, and
+        saving the new user to the database.
         """
         try:
             user = user_register_schema.load(request.get_json())
         except ValidationError as err:
             return err.messages, 400
-        if UserModel.query.filter_by(username=user["username"]).first():
+        db_session = g.flask_backend_session
+        user_username = db_session.query(UserModel).filter_by(
+            username=user["username"]
+        ).first()
+        user_email = db_session.query(UserModel).filter_by(
+            email_address=user["email_address"]
+        ).first()
+        if user_username:
             return make_response(
                 jsonify(
                     {
@@ -34,9 +71,7 @@ class UserRegistration(Resource):
                     }
                 ), 400
             )
-        if UserModel.query.filter_by(
-            email_address=user["email_address"]
-        ).first():
+        if user_email:
             return make_response(
                 jsonify({"message": "User with this email already exist"}), 400
             )
@@ -47,9 +82,8 @@ class UserRegistration(Resource):
             try:
                 user["user_uuid"] = str(uuid4())
                 user["origin"] = "my_blog"
-                Base.session.add(UserModel(**user))
-                Base.session.commit()
-                Base.session.close()
+                db_session.add(UserModel(**user))
+                db_session.commit()
                 return make_response(
                     jsonify(
                         {
@@ -66,7 +100,100 @@ class UserRegistration(Resource):
                 )
                 flag = False
             except IntegrityError:
-                Base.session.rollback()
+                db_session.rollback()
+
+
+class UserResource(Resource):
+    @classmethod
+    def get(cls, username):
+        """
+        Getting GET requests on the '/api/users/<username>' endpoint, and
+        returning the user from the database.
+        """
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        db_session = g.flask_backend_session
+        user = db_session.query(UserModel).filter(
+            UserModel.username == incoming_username['username']
+        ).first()
+        if not user:
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+        return make_response(
+            jsonify(user_register_schema.dump(user))
+        )
+
+    @classmethod
+    def patch(cls, username):
+        """
+        Getting PATCH requests on the '/api/users/<username>' endpoint, and
+        updating the user data in the database.
+        """
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        try:
+            incoming_user = user_password_schema.load(request.get_json())
+        except ValidationError as err:
+            return err.messages, 400
+        db_session = g.flask_backend_session
+        user = db_session.query(UserModel).filter(
+            UserModel.username == incoming_username['username']
+        ).first()
+        if not user:
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+        db_session.query(UserModel).filter(
+            UserModel.user_uuid == incoming_username['username']
+        ).update(
+            {
+                "password": argon2.hash(incoming_user["password"])
+            }
+        )
+        db_session.commit()
+        return make_response(
+            jsonify(
+                {
+                    "message": "User credentials succesfully updated",
+                    "code": 200
+                }
+            ), 200
+        )
+
+    @classmethod
+    def delete(cls, username):
+        """
+        Getting DELETE requests on the '/api/users/<username>' endpoint, and
+        deleting the user in the database.
+        """
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        db_session = g.flask_backend_session
+        user = db_session.query(UserModel).filter(
+            UserModel.username == incoming_username['username']
+        ).first()
+        if not user:
+            return make_response(
+                jsonify({"message": "user not found", "code": 404}), 404
+            )
+        db_session.delete(user)
+        db_session.commit()
+        return make_response(jsonify(
+            {
+                "message": "User deleted",
+                "code": 200
+            }
+        ), 200,)
 
 
 class UserLogin(Resource):
@@ -82,10 +209,11 @@ class UserLogin(Resource):
         except ValidationError as err:
             return err.messages, 400
         ###
-        db_user = UserModel.query.filter_by(
+        db_session = g.flask_backend_session
+        db_user = db_session.query(UserModel).filter_by(
             username=incoming_user["username"]
         ).first()
-        db_email_address = UserModel.query.filter_by(
+        db_email_address = db_session.query(UserModel).filter_by(
             email_address=incoming_user["email_address"]
         ).first()
         ###
@@ -141,13 +269,172 @@ class UserLogin(Resource):
             )
 
 
-class UserList(Resource):
+class UserStories(Resource):
     @classmethod
-    def get(cls):
+    def get(cls, username):
         """
-        Getting GET requests on the '/api/users' endpoint, and returning a list
-        with all users in database.
+        Getting GET requests on the
+        '/api/users/<username>/stories/?pagenumber=N' endpoint,
+        and returning up to 500 user`s stories
         """
-        if not UserModel.query.all():
-            return {"message": "No users in this table"}
-        return {"message": users_schema.dump(UserModel.query.all())}
+        try:
+            pagenumber = {"pagenumber": request.args.get("pagenumber")}
+            incoming_pagination = news_pagination_schema.load(pagenumber)
+        except ValidationError as err:
+            return err.messages, 400
+        if incoming_pagination["pagenumber"] <= 0:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "pagenumber must be greater then 0",
+                        "code": 400
+                    }
+                ),
+                400,
+            )
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        db_session = g.flask_backend_session
+        users_stories = db_session.query(BlogNewsStory).filter(
+            BlogNewsStory.by == incoming_username['username']
+        ).all()
+        if not users_stories:
+            return make_response(
+                jsonify(
+                    {'message': 'stories not found', 'code': 404}
+                ), 404
+            )
+        page = paginate(
+            db_session.query(BlogNewsStory).filter(
+                BlogNewsStory.by == incoming_username['username']
+            ).order_by(desc(BlogNewsStory.time))
+            .limit(500)
+            .from_self(),
+            incoming_pagination["pagenumber"],
+            30,
+        )
+        result_page = {
+            "current_page": incoming_pagination["pagenumber"],
+            "has_next": page.has_next,
+            "has_previous": page.has_previous,
+            "items": blognews_stories_schema.dump(page.items),
+            "next_page": page.next_page,
+            "previous_page": page.previous_page,
+            "pages": page.pages,
+            "total": page.total,
+        }
+        if incoming_pagination["pagenumber"] > result_page["pages"]:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "Pagination page not found",
+                        "code": 404
+                    }
+                ), 404,
+            )
+        return jsonify(result_page)
+
+
+class UserStory(Resource):
+    @classmethod
+    def get(cls, username, story_id):
+        """
+        Getting GET requests on the
+        '/api/users/<username>/stories/<story_id>' endpoint,
+        and returning user`s story by story id
+        """
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        try:
+            story_id = {"story_id": story_id}
+            incoming_story_id = story_id_schema.load(story_id)
+        except ValidationError as err:
+            return err.messages, 400
+        db_session = g.flask_backend_session
+        user_story = db_session.query(BlogNewsStory).filter(
+            BlogNewsStory.by == incoming_username['username']
+        ).filter(
+            BlogNewsStory.id == incoming_story_id['story_id']
+        ).first()
+        if not user_story:
+            return make_response(
+                jsonify(
+                    {'message': 'story not found', 'code': 404}
+                ), 404
+            )
+        return jsonify(blognews_story_schema.dump(user_story))
+
+
+class UserComments(Resource):
+    @classmethod
+    def get(cls, username):
+        """
+        Getting GET requests on the
+        '/api/users/<username>/comments/?pagenumber=N' endpoint,
+        and returning up to 500 user' comments
+        """
+        try:
+            pagenumber = {"pagenumber": request.args.get("pagenumber")}
+            incoming_pagination = news_pagination_schema.load(pagenumber)
+        except ValidationError as err:
+            return err.messages, 400
+        if incoming_pagination["pagenumber"] <= 0:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "pagenumber must be greater then 0",
+                        "code": 400
+                    }
+                ),
+                400,
+            )
+        try:
+            username = {"username": username}
+            incoming_username = username_schema.load(username)
+        except ValidationError as err:
+            return err.messages, 400
+        db_session = g.flask_backend_session
+        users_comments = db_session.query(BlogNewsStoryComment).filter(
+            BlogNewsStoryComment.by == incoming_username['username']
+        ).all()
+        if not users_comments:
+            return make_response(
+                jsonify(
+                    {'message': 'comments not found', 'code': 404}
+                ), 404
+            )
+        page = paginate(
+            db_session.query(BlogNewsStoryComment).filter(
+                BlogNewsStoryComment.by == incoming_username['username']
+            ).order_by(desc(BlogNewsStoryComment.time))
+            .limit(500)
+            .from_self(),
+            incoming_pagination["pagenumber"],
+            30,
+        )
+        result_page = {
+            "current_page": incoming_pagination["pagenumber"],
+            "has_next": page.has_next,
+            "has_previous": page.has_previous,
+            "items": blognews_stories_schema.dump(page.items),
+            "next_page": page.next_page,
+            "previous_page": page.previous_page,
+            "pages": page.pages,
+            "total": page.total,
+        }
+        if incoming_pagination["pagenumber"] > result_page["pages"]:
+            return make_response(
+                jsonify(
+                    {
+                        "message": "Pagination page not found",
+                        "code": 404
+                    }
+                ), 404,
+            )
+        return jsonify(result_page)
