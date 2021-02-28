@@ -199,7 +199,6 @@ def test_signin_all_fields_empty(client):
         {
             "username": [
                 "Length must be between 3 and 256.",
-                "String does not match expected pattern."
             ],
             "password": [
                 "Length must be between 6 and 32.",
